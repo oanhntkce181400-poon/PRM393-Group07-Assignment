@@ -1,5 +1,6 @@
+import 'package:expense_tracker/providers/goal_provider.dart';
 import 'package:expense_tracker/providers/transaction_provider.dart';
-import 'package:expense_tracker/screens/transaction_list_screen.dart';
+import 'package:expense_tracker/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -12,8 +13,15 @@ class ExpenseTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => TransactionProvider()..loadInitialData(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => TransactionProvider()..loadInitialData(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => GoalProvider()..loadInitialData(),
+        ),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Quản lý chi tiêu',
@@ -53,7 +61,7 @@ class ExpenseTrackerApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const TransactionListScreen(),
+        home: const HomeScreen(),
       ),
     );
   }

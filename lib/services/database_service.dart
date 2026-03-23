@@ -1,3 +1,4 @@
+import 'package:expense_tracker/models/goal.dart';
 import 'package:expense_tracker/models/transaction.dart' as app_model;
 import 'package:expense_tracker/models/wallet.dart';
 import 'package:expense_tracker/services/seed_service.dart';
@@ -8,7 +9,7 @@ class DatabaseService {
 
   static final DatabaseService instance = DatabaseService._internal();
   static const _databaseName = 'expense_tracker.db';
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
 
   Database? _database;
 
@@ -32,6 +33,7 @@ class DatabaseService {
         await db.execute('PRAGMA foreign_keys = ON');
       },
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -58,7 +60,33 @@ class DatabaseService {
 			)
 		''');
 
+    await db.execute('''
+			CREATE TABLE goals(
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				name TEXT NOT NULL,
+				targetAmount REAL NOT NULL,
+				currentAmount REAL NOT NULL,
+				startDate TEXT NOT NULL,
+				endDate TEXT NOT NULL
+			)
+		''');
+
     await SeedService.seedInitialData(db);
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+			CREATE TABLE goals(
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				name TEXT NOT NULL,
+				targetAmount REAL NOT NULL,
+				currentAmount REAL NOT NULL,
+				startDate TEXT NOT NULL,
+				endDate TEXT NOT NULL
+			)
+		''');
+    }
   }
 
   Future<List<Wallet>> getWallets() async {
@@ -217,6 +245,56 @@ class DatabaseService {
     await executor.rawUpdate(
       'UPDATE wallets SET balance = balance + ? WHERE id = ?',
       [delta, walletId],
+    );
+  }
+
+  // Goals Methods
+  Future<List<Goal>> getGoals() async {
+    final db = await database;
+    final result = await db.query('goals', orderBy: 'endDate ASC');
+    return result.map(Goal.fromMap).toList();
+  }
+
+  Future<Goal?> getGoalById(int id) async {
+    final db = await database;
+    final result = await db.query(
+      'goals',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    return Goal.fromMap(result.first);
+  }
+
+  Future<int> insertGoal(Goal goal) async {
+    final db = await database;
+    return db.insert('goals', goal.toMap());
+  }
+
+  Future<int> updateGoal(Goal goal) async {
+    if (goal.id == null) {
+      throw ArgumentError('Goal id is required for update.');
+    }
+
+    final db = await database;
+    return db.update(
+      'goals',
+      goal.toMap(),
+      where: 'id = ?',
+      whereArgs: [goal.id],
+    );
+  }
+
+  Future<int> deleteGoal(int id) async {
+    final db = await database;
+    return db.delete(
+      'goals',
+      where: 'id = ?',
+      whereArgs: [id],
     );
   }
 }

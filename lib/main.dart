@@ -1,9 +1,23 @@
+import 'package:expense_tracker/providers/debt_loan_provider.dart';
+import 'package:expense_tracker/providers/notification_provider.dart';
 import 'package:expense_tracker/providers/transaction_provider.dart';
 import 'package:expense_tracker/screens/transaction_list_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.windows ||
+          defaultTargetPlatform == TargetPlatform.linux ||
+          defaultTargetPlatform == TargetPlatform.macOS)) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
+
   runApp(const ExpenseTrackerApp());
 }
 
@@ -12,8 +26,16 @@ class ExpenseTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => TransactionProvider()..loadInitialData(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => TransactionProvider()..loadInitialData(),
+        ),
+        ChangeNotifierProvider(create: (_) => DebtLoanProvider()),
+        ChangeNotifierProvider(
+          create: (_) => NotificationProvider()..loadInitialData(),
+        ),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Quản lý chi tiêu',

@@ -1,3 +1,4 @@
+import 'package:expense_tracker/models/debt.dart';
 import 'package:expense_tracker/models/transaction.dart' as app_model;
 import 'package:expense_tracker/models/wallet.dart';
 import 'package:expense_tracker/services/seed_service.dart';
@@ -8,7 +9,7 @@ class DatabaseService {
 
   static final DatabaseService instance = DatabaseService._internal();
   static const _databaseName = 'expense_tracker.db';
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 3;
 
   Database? _database;
 
@@ -32,6 +33,7 @@ class DatabaseService {
         await db.execute('PRAGMA foreign_keys = ON');
       },
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -58,7 +60,62 @@ class DatabaseService {
 			)
 		''');
 
+    await _createDebtTable(db);
+    await _createNotificationTable(db);
+
     await SeedService.seedInitialData(db);
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await _createDebtTable(db);
+      await _createNotificationTable(db);
+    }
+
+    if (oldVersion < 3) {
+      await _ensureNotificationReadColumn(db);
+    }
+  }
+
+  Future<void> _createDebtTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS debts(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        partnerName TEXT NOT NULL,
+        debtType TEXT NOT NULL,
+        amount REAL NOT NULL,
+        dueDate TEXT NOT NULL,
+        status INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+  }
+
+  Future<void> _createNotificationTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS system_notifications(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        referenceId INTEGER,
+        createdAt TEXT NOT NULL,
+        isRead INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+  }
+
+  Future<void> _ensureNotificationReadColumn(Database db) async {
+    final columns = await db.rawQuery(
+      'PRAGMA table_info(system_notifications)',
+    );
+    final hasReadColumn = columns.any((item) => item['name'] == 'isRead');
+    if (hasReadColumn) {
+      return;
+    }
+
+    await db.execute(
+      'ALTER TABLE system_notifications ADD COLUMN isRead INTEGER NOT NULL DEFAULT 0',
+    );
   }
 
   Future<List<Wallet>> getWallets() async {
@@ -123,6 +180,7 @@ class DatabaseService {
         transactionType: transaction.transactionType,
         reverse: false,
       );
+      await _createLowBalanceNotificationIfNeeded(txn, transaction.walletId);
       return insertedId;
     });
   }
@@ -168,6 +226,11 @@ class DatabaseService {
         reverse: false,
       );
 
+      await _createLowBalanceNotificationIfNeeded(txn, oldTx.walletId);
+      if (oldTx.walletId != transaction.walletId) {
+        await _createLowBalanceNotificationIfNeeded(txn, transaction.walletId);
+      }
+
       return updatedRows;
     });
   }
@@ -194,6 +257,8 @@ class DatabaseService {
         reverse: true,
       );
 
+      await _createLowBalanceNotificationIfNeeded(txn, deletedTx.walletId);
+
       return txn.delete(
         'transactions',
         where: 'id = ?',
@@ -218,5 +283,166 @@ class DatabaseService {
       'UPDATE wallets SET balance = balance + ? WHERE id = ?',
       [delta, walletId],
     );
+  }
+
+  Future<List<Debt>> getDebtsByType(String debtType) async {
+    final db = await database;
+    final result = await db.query(
+      'debts',
+      where: 'debtType = ?',
+      whereArgs: [debtType],
+      orderBy: 'status ASC, dueDate ASC, id DESC',
+    );
+    return result.map(Debt.fromMap).toList();
+  }
+
+  Future<int> insertDebt(Debt debt) async {
+    final db = await database;
+    return db.insert('debts', debt.toMap());
+  }
+
+  Future<int> updateDebt(Debt debt) async {
+    if (debt.id == null) {
+      throw ArgumentError('Debt id is required for update.');
+    }
+
+    final db = await database;
+    return db.update(
+      'debts',
+      debt.toMap(),
+      where: 'id = ?',
+      whereArgs: [debt.id],
+    );
+  }
+
+  Future<int> deleteDebt(int debtId) async {
+    final db = await database;
+    return db.delete('debts', where: 'id = ?', whereArgs: [debtId]);
+  }
+
+  Future<int> markDebtPaid(int debtId, bool isPaid) async {
+    final db = await database;
+    return db.update(
+      'debts',
+      {'status': isPaid ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [debtId],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getNotifications() async {
+    await ensureDailyReminderNotification();
+    final db = await database;
+    return db.query('system_notifications', orderBy: 'createdAt DESC, id DESC');
+  }
+
+  Future<int> getUnreadNotificationCount() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) AS unreadTotal FROM system_notifications WHERE isRead = 0',
+    );
+
+    if (result.isEmpty) {
+      return 0;
+    }
+
+    return ((result.first['unreadTotal'] as num?) ?? 0).toInt();
+  }
+
+  Future<void> markAllNotificationsAsRead() async {
+    final db = await database;
+    await db.update('system_notifications', {'isRead': 1}, where: 'isRead = 0');
+  }
+
+  Future<void> ensureDailyReminderNotification() async {
+    final now = DateTime.now();
+    if (now.hour < 20) {
+      return;
+    }
+
+    final db = await database;
+    final datePrefix = now.toIso8601String().split('T').first;
+    final existing = await db.query(
+      'system_notifications',
+      where: 'type = ? AND createdAt LIKE ?',
+      whereArgs: ['DAILY_REMINDER', '$datePrefix%'],
+      limit: 1,
+    );
+
+    if (existing.isNotEmpty) {
+      return;
+    }
+
+    await db.insert('system_notifications', {
+      'type': 'DAILY_REMINDER',
+      'title': 'Nhắc nhở buổi tối',
+      'message':
+          'Đừng quên nhập chi tiêu hôm nay để theo dõi chính xác hơn nhé.',
+      'referenceId': null,
+      'createdAt': now.toIso8601String(),
+      'isRead': 0,
+    });
+  }
+
+  Future<void> _createLowBalanceNotificationIfNeeded(
+    DatabaseExecutor executor,
+    int walletId,
+  ) async {
+    final walletRows = await executor.query(
+      'wallets',
+      columns: ['name', 'budget', 'balance'],
+      where: 'id = ?',
+      whereArgs: [walletId],
+      limit: 1,
+    );
+
+    if (walletRows.isEmpty) {
+      return;
+    }
+
+    final wallet = walletRows.first;
+    final walletName = (wallet['name'] as String?) ?? 'Ví';
+    final budget = (wallet['budget'] as num?)?.toDouble() ?? 0;
+    final balance = (wallet['balance'] as num?)?.toDouble() ?? 0;
+
+    if (budget <= 0) {
+      return;
+    }
+
+    String? alertType;
+    String? message;
+
+    if (balance < 0) {
+      alertType = 'LOW_BALANCE_NEGATIVE';
+      message = 'Cảnh báo: $walletName đã âm tiền. Bạn cần cân đối lại ngay!';
+    } else if (balance <= budget * 0.2) {
+      alertType = 'LOW_BALANCE_20';
+      message = 'Cảnh báo: $walletName của bạn sắp cạn (dưới 20% ngân sách).';
+    }
+
+    if (alertType == null || message == null) {
+      return;
+    }
+
+    final datePrefix = DateTime.now().toIso8601String().split('T').first;
+    final existing = await executor.query(
+      'system_notifications',
+      where: 'type = ? AND referenceId = ? AND createdAt LIKE ?',
+      whereArgs: [alertType, walletId, '$datePrefix%'],
+      limit: 1,
+    );
+
+    if (existing.isNotEmpty) {
+      return;
+    }
+
+    await executor.insert('system_notifications', {
+      'type': alertType,
+      'title': 'Cảnh báo số dư ví',
+      'message': message,
+      'referenceId': walletId,
+      'createdAt': DateTime.now().toIso8601String(),
+      'isRead': 0,
+    });
   }
 }

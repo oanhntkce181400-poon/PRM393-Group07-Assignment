@@ -15,10 +15,20 @@ class SeedService {
 
   static Future<void> _seedWallets(Database db) async {
     final wallets = <Wallet>[
-      Wallet(name: 'Rent', iconCode: 0xe88a, budget: 2000000, balance: 2000000),
-      Wallet(name: 'Food', iconCode: 0xe56c, budget: 2000000, balance: 2000000),
       Wallet(
-        name: 'Shopping',
+        name: 'Tiền trọ',
+        iconCode: 0xe88a,
+        budget: 2000000,
+        balance: 2000000,
+      ),
+      Wallet(
+        name: 'Ăn uống',
+        iconCode: 0xe56c,
+        budget: 2000000,
+        balance: 2000000,
+      ),
+      Wallet(
+        name: 'Mua sắm',
         iconCode: 0xe59c,
         budget: 1000000,
         balance: 1000000,

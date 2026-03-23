@@ -30,6 +30,10 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
   void initState() {
     super.initState();
     _prefillFormIfNeeded();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // [DONG_BO_DANH_SACH_VI] Luôn lấy danh sách ví mới nhất khi mở màn hình.
+      context.read<TransactionProvider>().refreshWalletsOnly();
+    });
   }
 
   @override
@@ -77,9 +81,11 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
     }
   }
 
+  // [NHAP_GIAO_DICH] Thu thập input và lưu giao dịch mới/chỉnh sửa.
   Future<void> _submit() async {
     final provider = context.read<TransactionProvider>();
 
+    // [KIEM_TRA_DAU_VAO] Bắt buộc chọn ví.
     if (_walletId == null) {
       ScaffoldMessenger.of(
         context,
@@ -88,6 +94,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
     }
 
     final rawAmount = _amountController.text.trim();
+    // [KIEM_TRA_DAU_VAO] Bắt buộc nhập số tiền.
     if (rawAmount.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -96,6 +103,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
     }
 
     final parsedAmount = double.tryParse(rawAmount);
+    // [KIEM_TRA_DAU_VAO] Số tiền phải là số dương.
     if (parsedAmount == null || parsedAmount <= 0) {
       ScaffoldMessenger.of(
         context,
@@ -108,6 +116,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
     });
 
     try {
+      // [TAO_MODEL] Đóng gói dữ liệu form thành model Transaction.
       final tx = Transaction(
         id: _isEditMode
             ? (widget.existingTransaction!['id'] as num).toInt()
@@ -120,8 +129,10 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
       );
 
       if (_isEditMode) {
+        // [LUU_DB] Chế độ sửa giao dịch.
         await provider.updateTransaction(tx);
       } else {
+        // [LUU_DB] Chế độ thêm giao dịch mới.
         await provider.addTransaction(tx);
       }
 

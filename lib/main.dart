@@ -16,7 +16,7 @@ class ExpenseTrackerApp extends StatelessWidget {
       create: (_) => TransactionProvider()..loadInitialData(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Expense Tracker',
+        title: 'Quản lý chi tiêu',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F766E)),
           useMaterial3: true,

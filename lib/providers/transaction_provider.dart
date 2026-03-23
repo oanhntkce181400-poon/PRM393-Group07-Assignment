@@ -29,7 +29,7 @@ class TransactionProvider extends ChangeNotifier {
       _wallets = await _databaseService.getWallets();
       _transactions = await _databaseService.getTransactionsWithWallet();
     } catch (e) {
-      _errorMessage = 'Failed to load data: $e';
+      _errorMessage = 'Không thể tải dữ liệu: $e';
     } finally {
       _isLoading = false;
       notifyListeners();

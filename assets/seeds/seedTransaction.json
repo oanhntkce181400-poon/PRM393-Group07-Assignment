@@ -4,104 +4,104 @@
     "transactionType": "EXPENSE",
     "amount": 45000,
     "date": "2026-03-22T12:30:00",
-    "note": "Bun bo buoi trua"
+    "note": "Bún bò buổi trưa"
   },
   {
     "walletId": 2,
     "transactionType": "EXPENSE",
     "amount": 120000,
     "date": "2026-03-21T18:20:00",
-    "note": "Sieu thi cuoi tuan"
+    "note": "Siêu thị cuối tuần"
   },
   {
     "walletId": 1,
     "transactionType": "EXPENSE",
     "amount": 2000000,
     "date": "2026-03-20T09:00:00",
-    "note": "Dong tien tro thang 3"
+    "note": "Đóng tiền trọ tháng 3"
   },
   {
     "walletId": 3,
     "transactionType": "EXPENSE",
     "amount": 320000,
     "date": "2026-03-19T20:40:00",
-    "note": "Mua giay the thao"
+    "note": "Mua giày thể thao"
   },
   {
     "walletId": 2,
     "transactionType": "EXPENSE",
     "amount": 25000,
     "date": "2026-03-18T08:15:00",
-    "note": "Cafe sang"
+    "note": "Cà phê sáng"
   },
   {
     "walletId": 2,
     "transactionType": "INCOME",
     "amount": 300000,
     "date": "2026-03-17T14:10:00",
-    "note": "Me cho tien an"
+    "note": "Mẹ cho tiền ăn"
   },
   {
     "walletId": 3,
     "transactionType": "EXPENSE",
     "amount": 150000,
     "date": "2026-03-16T16:55:00",
-    "note": "Mua ao phong"
+    "note": "Mua áo phông"
   },
   {
     "walletId": 1,
     "transactionType": "INCOME",
     "amount": 500000,
     "date": "2026-03-15T11:00:00",
-    "note": "Ban do cu"
+    "note": "Bán đồ cũ"
   },
   {
     "walletId": 2,
     "transactionType": "EXPENSE",
     "amount": 55000,
     "date": "2026-03-14T12:15:00",
-    "note": "Com ga"
+    "note": "Cơm gà"
   },
   {
     "walletId": 3,
     "transactionType": "EXPENSE",
     "amount": 70000,
     "date": "2026-03-13T19:25:00",
-    "note": "Phu kien dien thoai"
+    "note": "Phụ kiện điện thoại"
   },
   {
     "walletId": 2,
     "transactionType": "INCOME",
     "amount": 400000,
     "date": "2026-03-12T22:00:00",
-    "note": "Lam them part-time"
+    "note": "Làm thêm part-time"
   },
   {
     "walletId": 1,
     "transactionType": "EXPENSE",
     "amount": 150000,
     "date": "2026-03-11T10:30:00",
-    "note": "Tien dien nuoc"
+    "note": "Tiền điện nước"
   },
   {
     "walletId": 2,
     "transactionType": "EXPENSE",
     "amount": 38000,
     "date": "2026-03-10T13:45:00",
-    "note": "Mi cay"
+    "note": "Mì cay"
   },
   {
     "walletId": 3,
     "transactionType": "INCOME",
     "amount": 250000,
     "date": "2026-03-09T15:10:00",
-    "note": "Hoan tien don hang"
+    "note": "Hoàn tiền đơn hàng"
   },
   {
     "walletId": 2,
     "transactionType": "EXPENSE",
     "amount": 48000,
     "date": "2026-03-08T20:20:00",
-    "note": "Tra sua voi ban"
+    "note": "Trà sữa với bạn"
   }
 ]

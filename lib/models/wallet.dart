@@ -25,7 +25,7 @@ class Wallet {
     id: map['id'],
     name: map['name'],
     iconCode: map['iconCode'],
-    budget: map['budget'],
-    balance: map['balance'],
+    budget: (map['budget'] as num).toDouble(),
+    balance: (map['balance'] as num).toDouble(),
   );
 }

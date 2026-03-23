@@ -27,7 +27,7 @@ class Transaction {
   factory Transaction.fromMap(Map<String, dynamic> map) => Transaction(
     id: map['id'],
     walletId: map['walletId'],
-    amount: map['amount'],
+    amount: (map['amount'] as num).toDouble(),
     transactionType: map['transactionType'],
     date: map['date'],
     note: map['note'],

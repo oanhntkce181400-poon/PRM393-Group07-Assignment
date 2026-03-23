@@ -21,4 +21,7 @@ Sau khi clone project từ nhánh `develop` về máy tính, hãy làm theo các
 1. Mở Terminal (trong VS Code hoặc Android Studio) tại thư mục gốc của project.
 2. Chạy lệnh cài đặt các thư viện (Provider, SQLite, fl_chart...):
    ```bash
-   flutter pub get
+   flutter pub g
+
+3. Lệnh seed lại data mẫu khi đã có data thật:
+   adb shell pm clear com.example.expense_tracker

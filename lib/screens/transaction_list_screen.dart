@@ -1,7 +1,12 @@
 import 'dart:ui';
 
+import 'package:expense_tracker/providers/notification_provider.dart';
 import 'package:expense_tracker/providers/transaction_provider.dart';
 import 'package:expense_tracker/screens/add_edit_transaction_screen.dart';
+import 'package:expense_tracker/screens/debt_loan_management_screen.dart';
+import 'package:expense_tracker/screens/debt_loan_overview_screen.dart';
+import 'package:expense_tracker/screens/goal_list_screen.dart';
+import 'package:expense_tracker/screens/notifications_screen.dart';
 import 'package:expense_tracker/screens/transaction_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +15,24 @@ import 'package:provider/provider.dart';
 
 class TransactionListScreen extends StatelessWidget {
   const TransactionListScreen({super.key});
+
+  Future<void> _openFeatureScreen(BuildContext context, String value) async {
+    final notificationProvider = context.read<NotificationProvider>();
+
+    Widget screen;
+    if (value == 'debt_overview') {
+      screen = const DebtLoanOverviewScreen();
+    } else if (value == 'debt_manage') {
+      screen = const DebtLoanManagementScreen();
+    } else if (value == 'goal') {
+      screen = const GoalListScreen();
+    } else {
+      screen = const NotificationsScreen();
+    }
+
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+    await notificationProvider.refreshData();
+  }
 
   String _buildGreeting() {
     final hour = DateTime.now().hour;
@@ -100,6 +123,71 @@ class TransactionListScreen extends StatelessWidget {
                 surfaceTintColor: Colors.transparent,
                 elevation: 0,
                 actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Consumer<NotificationProvider>(
+                      builder: (context, notificationProvider, child) {
+                        final unread = notificationProvider.unreadCount;
+                        return IconButton(
+                          tooltip: 'Thông báo',
+                          onPressed: () =>
+                              _openFeatureScreen(context, 'notifications'),
+                          icon: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF0F766E,
+                                  ).withValues(alpha: 0.14),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.notifications_none_rounded,
+                                  size: 18,
+                                  color: Color(0xFF0F766E),
+                                ),
+                              ),
+                              if (unread > 0)
+                                Positioned(
+                                  right: -6,
+                                  top: -5,
+                                  child: Container(
+                                    constraints: const BoxConstraints(
+                                      minWidth: 18,
+                                      minHeight: 18,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 1.4,
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        unread > 99 ? '99+' : '$unread',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                   Padding(
                     padding: const EdgeInsets.only(right: 14),
                     child: CircleAvatar(
@@ -301,6 +389,69 @@ class TransactionListScreen extends StatelessWidget {
                           ).format(expenseTotal),
                           color: Colors.red,
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tiện ích nhanh',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0F172A),
+                            ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _FeatureQuickAction(
+                              title: 'Nợ & vay',
+                              subtitle: 'Xem danh sách',
+                              icon: Icons.account_balance_wallet_outlined,
+                              color: const Color(0xFF0EA5A4),
+                              onTap: () =>
+                                  _openFeatureScreen(context, 'debt_overview'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _FeatureQuickAction(
+                              title: 'Quản lý nợ',
+                              subtitle: 'Thêm / sửa / xóa',
+                              icon: Icons.edit_note_rounded,
+                              color: const Color(0xFF22C55E),
+                              onTap: () =>
+                                  _openFeatureScreen(context, 'debt_manage'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _FeatureQuickAction(
+                              title: 'Quỹ tiết kiệm',
+                              subtitle: 'Xem mục tiêu',
+                              icon: Icons.savings_outlined,
+                              color: const Color(0xFFF59E0B),
+                              onTap: () =>
+                                  _openFeatureScreen(context, 'goal'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Container(),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -510,6 +661,77 @@ class _SummaryPill extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FeatureQuickAction extends StatelessWidget {
+  const _FeatureQuickAction({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.22)),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: color.withValues(alpha: 0.16),
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF475569),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

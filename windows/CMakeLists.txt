@@ -2,6 +2,9 @@
 cmake_minimum_required(VERSION 3.14)
 project(expense_tracker LANGUAGES CXX)
 
+# Allow older third-party CMake scripts (Firebase C++ SDK) when using CMake 4.x.
+set(CMAKE_POLICY_VERSION_MINIMUM "3.5")
+
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
 set(BINARY_NAME "expense_tracker")

@@ -1,3 +1,4 @@
+import 'package:expense_tracker/models/debt.dart';
 import 'package:expense_tracker/models/goal.dart';
 import 'package:expense_tracker/models/transaction.dart' as app_model;
 import 'package:expense_tracker/models/wallet.dart';
@@ -9,7 +10,7 @@ class DatabaseService {
 
   static final DatabaseService instance = DatabaseService._internal();
   static const _databaseName = 'expense_tracker.db';
-  static const _databaseVersion = 2;
+  static const _databaseVersion = 3;
 
   Database? _database;
 
@@ -71,6 +72,27 @@ class DatabaseService {
 			)
 		''');
 
+    await db.execute('''
+			CREATE TABLE debts(
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				partnerName TEXT NOT NULL,
+				debtType TEXT NOT NULL,
+				amount REAL NOT NULL,
+				dueDate TEXT NOT NULL,
+				status INTEGER NOT NULL
+			)
+		''');
+
+    await db.execute('''
+			CREATE TABLE notifications(
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				title TEXT NOT NULL,
+				message TEXT NOT NULL,
+				isRead INTEGER NOT NULL DEFAULT 0,
+				createdAt TEXT NOT NULL
+			)
+		''');
+
     await SeedService.seedInitialData(db);
   }
 
@@ -84,6 +106,27 @@ class DatabaseService {
 				currentAmount REAL NOT NULL,
 				startDate TEXT NOT NULL,
 				endDate TEXT NOT NULL
+			)
+		''');
+    }
+    if (oldVersion < 3) {
+      await db.execute('''
+			CREATE TABLE debts(
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				partnerName TEXT NOT NULL,
+				debtType TEXT NOT NULL,
+				amount REAL NOT NULL,
+				dueDate TEXT NOT NULL,
+				status INTEGER NOT NULL
+			)
+		''');
+      await db.execute('''
+			CREATE TABLE notifications(
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				title TEXT NOT NULL,
+				message TEXT NOT NULL,
+				isRead INTEGER NOT NULL DEFAULT 0,
+				createdAt TEXT NOT NULL
 			)
 		''');
     }
@@ -295,6 +338,86 @@ class DatabaseService {
       'goals',
       where: 'id = ?',
       whereArgs: [id],
+    );
+  }
+
+  // Debt Methods
+  Future<List<Debt>> getDebtsByType(String debtType) async {
+    final db = await database;
+    final result = await db.query(
+      'debts',
+      where: 'debtType = ?',
+      whereArgs: [debtType],
+      orderBy: 'dueDate ASC',
+    );
+    return result.map(Debt.fromMap).toList();
+  }
+
+  Future<int> insertDebt(Debt debt) async {
+    final db = await database;
+    return db.insert('debts', debt.toMap());
+  }
+
+  Future<int> updateDebt(Debt debt) async {
+    if (debt.id == null) {
+      throw ArgumentError('Debt id is required for update.');
+    }
+
+    final db = await database;
+    return db.update(
+      'debts',
+      debt.toMap(),
+      where: 'id = ?',
+      whereArgs: [debt.id],
+    );
+  }
+
+  Future<int> deleteDebt(int debtId) async {
+    final db = await database;
+    return db.delete(
+      'debts',
+      where: 'id = ?',
+      whereArgs: [debtId],
+    );
+  }
+
+  Future<int> markDebtPaid(int debtId, bool isPaid) async {
+    final db = await database;
+    return db.update(
+      'debts',
+      {'status': isPaid ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [debtId],
+    );
+  }
+
+  // Notification Methods
+  Future<List<Map<String, dynamic>>> getNotifications() async {
+    final db = await database;
+    return db.query(
+      'notifications',
+      orderBy: 'createdAt DESC',
+    );
+  }
+
+  Future<int> insertNotification({
+    required String title,
+    required String message,
+  }) async {
+    final db = await database;
+    return db.insert('notifications', {
+      'title': title,
+      'message': message,
+      'isRead': 0,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<int> markAllNotificationsAsRead() async {
+    final db = await database;
+    return db.update(
+      'notifications',
+      {'isRead': 1},
     );
   }
 }

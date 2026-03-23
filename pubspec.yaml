@@ -36,6 +36,7 @@ dependencies:
   
   # Database cục bộ (Vì Firebase chỉ dùng để thông báo)
   sqflite: ^2.3.0
+  sqflite_common_ffi: ^2.3.4
   path_provider: ^2.1.2
 
   # Dịch vụ Thông báo thời gian thực của Firebase

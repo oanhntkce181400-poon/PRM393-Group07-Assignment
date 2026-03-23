@@ -1,10 +1,24 @@
+import 'package:expense_tracker/providers/debt_loan_provider.dart';
 import 'package:expense_tracker/providers/goal_provider.dart';
+import 'package:expense_tracker/providers/notification_provider.dart';
 import 'package:expense_tracker/providers/transaction_provider.dart';
-import 'package:expense_tracker/screens/home_screen.dart';
+import 'package:expense_tracker/screens/transaction_list_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.windows ||
+          defaultTargetPlatform == TargetPlatform.linux ||
+          defaultTargetPlatform == TargetPlatform.macOS)) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
+
   runApp(const ExpenseTrackerApp());
 }
 
@@ -20,6 +34,12 @@ class ExpenseTrackerApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => GoalProvider()..loadInitialData(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => DebtLoanProvider()..loadInitialData(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => NotificationProvider()..loadInitialData(),
         ),
       ],
       child: MaterialApp(
@@ -61,7 +81,7 @@ class ExpenseTrackerApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const HomeScreen(),
+        home: const TransactionListScreen(),
       ),
     );
   }

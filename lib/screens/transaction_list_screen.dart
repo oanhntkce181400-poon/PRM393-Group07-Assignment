@@ -5,6 +5,7 @@ import 'package:expense_tracker/providers/transaction_provider.dart';
 import 'package:expense_tracker/screens/add_edit_transaction_screen.dart';
 import 'package:expense_tracker/screens/debt_loan_management_screen.dart';
 import 'package:expense_tracker/screens/debt_loan_overview_screen.dart';
+import 'package:expense_tracker/screens/goal_list_screen.dart';
 import 'package:expense_tracker/screens/notifications_screen.dart';
 import 'package:expense_tracker/screens/transaction_detail_screen.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +24,8 @@ class TransactionListScreen extends StatelessWidget {
       screen = const DebtLoanOverviewScreen();
     } else if (value == 'debt_manage') {
       screen = const DebtLoanManagementScreen();
+    } else if (value == 'goal') {
+      screen = const GoalListScreen();
     } else {
       screen = const NotificationsScreen();
     }
@@ -428,6 +431,25 @@ class TransactionListScreen extends StatelessWidget {
                               onTap: () =>
                                   _openFeatureScreen(context, 'debt_manage'),
                             ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _FeatureQuickAction(
+                              title: 'Quỹ tiết kiệm',
+                              subtitle: 'Xem mục tiêu',
+                              icon: Icons.savings_outlined,
+                              color: const Color(0xFFF59E0B),
+                              onTap: () =>
+                                  _openFeatureScreen(context, 'goal'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Container(),
                           ),
                         ],
                       ),

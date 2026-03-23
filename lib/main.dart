@@ -1,4 +1,5 @@
 import 'package:expense_tracker/providers/debt_loan_provider.dart';
+import 'package:expense_tracker/providers/goal_provider.dart';
 import 'package:expense_tracker/providers/notification_provider.dart';
 import 'package:expense_tracker/providers/transaction_provider.dart';
 import 'package:expense_tracker/screens/transaction_list_screen.dart';
@@ -31,7 +32,12 @@ class ExpenseTrackerApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => TransactionProvider()..loadInitialData(),
         ),
-        ChangeNotifierProvider(create: (_) => DebtLoanProvider()),
+        ChangeNotifierProvider(
+          create: (_) => GoalProvider()..loadInitialData(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => DebtLoanProvider()..loadInitialData(),
+        ),
         ChangeNotifierProvider(
           create: (_) => NotificationProvider()..loadInitialData(),
         ),

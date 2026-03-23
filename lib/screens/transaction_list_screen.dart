@@ -5,6 +5,7 @@ import 'package:expense_tracker/providers/transaction_provider.dart';
 import 'package:expense_tracker/screens/add_edit_transaction_screen.dart';
 import 'package:expense_tracker/screens/debt_loan_management_screen.dart';
 import 'package:expense_tracker/screens/debt_loan_overview_screen.dart';
+import 'package:expense_tracker/screens/envelope_managemet_screen.dart';
 import 'package:expense_tracker/screens/goal_list_screen.dart';
 import 'package:expense_tracker/screens/notifications_screen.dart';
 import 'package:expense_tracker/screens/transaction_detail_screen.dart';
@@ -26,6 +27,8 @@ class TransactionListScreen extends StatelessWidget {
       screen = const DebtLoanManagementScreen();
     } else if (value == 'goal') {
       screen = const GoalListScreen();
+    } else if (value == 'envelope_manage') {
+      screen = const EnvelopeManagementScreen();
     } else {
       screen = const NotificationsScreen();
     }
@@ -409,6 +412,8 @@ class TransactionListScreen extends StatelessWidget {
                             ),
                       ),
                       const SizedBox(height: 10),
+
+                      // Hàng 1: 2 nút cũ
                       Row(
                         children: [
                           Expanded(
@@ -434,6 +439,7 @@ class TransactionListScreen extends StatelessWidget {
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 10),
                       Row(
                         children: [
@@ -443,13 +449,19 @@ class TransactionListScreen extends StatelessWidget {
                               subtitle: 'Xem mục tiêu',
                               icon: Icons.savings_outlined,
                               color: const Color(0xFFF59E0B),
-                              onTap: () =>
-                                  _openFeatureScreen(context, 'goal'),
+                              onTap: () => _openFeatureScreen(context, 'goal'),
                             ),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: Container(),
+                            child: _FeatureQuickAction(
+                              title: 'Túi tiền',
+                              subtitle: 'Quản lý túi tiền',
+                              icon: Icons.account_balance_wallet_rounded,
+                              color: const Color(0xFF2563EB),
+                              onTap: () =>
+                                  _openFeatureScreen(context, 'envelope_manage'),
+                            ),
                           ),
                         ],
                       ),

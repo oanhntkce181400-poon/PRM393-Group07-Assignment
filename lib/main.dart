@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:expense_tracker/providers/envelope_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +42,7 @@ class ExpenseTrackerApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => NotificationProvider()..loadInitialData(),
         ),
+        ChangeNotifierProvider(create: (_) => EnvelopeProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

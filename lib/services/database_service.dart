@@ -511,4 +511,66 @@ class DatabaseService {
       'isRead': 0,
     });
   }
+
+  // ===== ENVELOPE =====
+
+  Future<int> insertWallet(Wallet wallet) async {
+    final db = await database;
+    return db.insert('wallets', wallet.toMap());
+  }
+
+  Future<int> updateWalletBasic(Wallet wallet) async {
+    if (wallet.id == null) {
+      throw ArgumentError('Wallet id is required.');
+    }
+
+    final db = await database;
+    return db.update(
+      'wallets',
+      wallet.toMap(),
+      where: 'id = ?',
+      whereArgs: [wallet.id],
+    );
+  }
+
+  Future<int> topUpWalletManual(int walletId, double amount) async {
+    if (amount <= 0) {
+      throw ArgumentError('Amount must be > 0');
+    }
+
+    final db = await database;
+
+    // Nạp tiền thủ công: tăng budget + balance để progress bar vẫn đúng
+    return db.rawUpdate(
+      'UPDATE wallets SET budget = budget + ?, balance = balance + ? WHERE id = ?',
+      [amount, amount, walletId],
+    );
+  }
+
+  Future<Wallet?> getWalletById(int walletId) async {
+    final db = await database;
+    final rows = await db.query(
+      'wallets',
+      where: 'id = ?',
+      whereArgs: [walletId],
+      limit: 1,
+    );
+
+    if (rows.isEmpty) return null;
+    return Wallet.fromMap(rows.first);
+  }
+
+  Future<List<Map<String, dynamic>>> getTransactionsByWallet(
+    int walletId,
+  ) async {
+    final db = await database;
+
+    // Lấy thu/chi của đúng 1 túi tiền
+    return db.query(
+      'transactions',
+      where: 'walletId = ?',
+      whereArgs: [walletId],
+      orderBy: 'date DESC, id DESC',
+    );
+  }
 }

@@ -36,6 +36,18 @@ class TransactionProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshWalletsOnly() async {
+    try {
+      // [LOAD_WALLETS] Chỉ tải lại danh sách ví, không tải lại transactions.
+      _wallets = await _databaseService.getWallets();
+      _errorMessage = null;
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = 'Không thể tải danh sách ví: $e';
+      notifyListeners();
+    }
+  }
+
   Future<void> addTransaction(Transaction transaction) async {
     await _databaseService.insertTransaction(transaction);
     await refreshData();

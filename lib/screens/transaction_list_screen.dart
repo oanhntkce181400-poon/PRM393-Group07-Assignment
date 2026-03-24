@@ -231,14 +231,22 @@ class TransactionListScreen extends StatelessWidget {
                                                       ),
                                                 ),
                                                 const SizedBox(height: 8),
-                                                Text(
-                                                  NumberFormat.currency(
-                                                    locale: 'vi_VN',
-                                                    symbol: 'Tổng số dư: ',
-                                                  ).format(totalBalance),
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w700,
-                                                    color: Color(0xFF0F766E),
+                                                RichText(
+                                                  text: TextSpan(
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: Color(0xFF0F766E),
+                                                    ),
+                                                    children: [
+                                                      const TextSpan(
+                                                        text: 'Tổng số dư: ',
+                                                      ),
+                                                      TextSpan(
+                                                        text:
+                                                            '${NumberFormat.decimalPattern('vi_VN').format(totalBalance)} ₫',
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
                                               ],
@@ -284,10 +292,8 @@ class TransactionListScreen extends StatelessWidget {
                       Expanded(
                         child: _SummaryPill(
                           title: 'Thu nhập',
-                          value: NumberFormat.compactCurrency(
-                            locale: 'vi_VN',
-                            symbol: 'VND ',
-                          ).format(incomeTotal),
+                          value:
+                              '${NumberFormat.decimalPattern('vi_VN').format(incomeTotal)} VND',
                           color: Colors.green,
                         ),
                       ),
@@ -295,12 +301,84 @@ class TransactionListScreen extends StatelessWidget {
                       Expanded(
                         child: _SummaryPill(
                           title: 'Chi tiêu',
-                          value: NumberFormat.compactCurrency(
-                            locale: 'vi_VN',
-                            symbol: 'VND ',
-                          ).format(expenseTotal),
+                          value:
+                              '${NumberFormat.decimalPattern('vi_VN').format(expenseTotal)} VND',
                           color: Colors.red,
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tiện ích nhanh',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0F172A),
+                            ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Hàng 1: 2 nút cũ
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _FeatureQuickAction(
+                              title: 'Nợ & vay',
+                              subtitle: 'Xem danh sách',
+                              icon: Icons.account_balance_wallet_outlined,
+                              color: const Color(0xFF0EA5A4),
+                              onTap: () =>
+                                  _openFeatureScreen(context, 'debt_overview'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _FeatureQuickAction(
+                              title: 'Quản lý nợ',
+                              subtitle: 'Thêm / sửa / xóa',
+                              icon: Icons.edit_note_rounded,
+                              color: const Color(0xFF22C55E),
+                              onTap: () =>
+                                  _openFeatureScreen(context, 'debt_manage'),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _FeatureQuickAction(
+                              title: 'Quỹ tiết kiệm',
+                              subtitle: 'Xem mục tiêu',
+                              icon: Icons.savings_outlined,
+                              color: const Color(0xFFF59E0B),
+                              onTap: () => _openFeatureScreen(context, 'goal'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _FeatureQuickAction(
+                              title: 'Túi tiền',
+                              subtitle: 'Quản lý túi tiền',
+                              icon: Icons.account_balance_wallet_rounded,
+                              color: const Color(0xFF2563EB),
+                              onTap: () => _openFeatureScreen(
+                                context,
+                                'envelope_manage',
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -337,8 +415,8 @@ class TransactionListScreen extends StatelessWidget {
                       final isExpense = transactionType == 'EXPENSE';
                       final color = isExpense ? Colors.red : Colors.green;
                       final icon = isExpense
-                          ? Icons.arrow_downward
-                          : Icons.arrow_upward;
+                          ? Icons.arrow_downward_rounded
+                          : Icons.arrow_upward_rounded;
                       final signedAmount = _formatSignedAmount(
                         amount,
                         isExpense: isExpense,
@@ -487,26 +565,48 @@ class _SummaryPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(left: 18),
             child: Text(
-              '$title: $value',
-              maxLines: 1,
+              value,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: color,
+              ),
             ),
           ),
         ],

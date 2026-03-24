@@ -1,43 +1,16 @@
-import 'package:expense_tracker/screens/goal_list_screen.dart';
-import 'package:expense_tracker/screens/transaction_list_screen.dart';
 import 'package:flutter/material.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class HomeScreen extends StatelessWidget {
+  final String name;
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
-
-  final List<Widget> _screens = [
-    const TransactionListScreen(),
-    const GoalListScreen(),
-  ];
+  const HomeScreen({required this.name});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (int index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long),
-            label: 'Giao dịch',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.flag_rounded),
-            label: 'Mục tiêu',
-          ),
-        ],
+      appBar: AppBar(title: Text("Home")),
+      body: Center(
+        child: Text("Welcome $name", style: TextStyle(fontSize: 24)),
       ),
     );
   }

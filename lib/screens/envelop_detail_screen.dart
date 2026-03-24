@@ -31,13 +31,17 @@ class _EnvelopeDetailEditScreenState extends State<EnvelopeDetailEditScreen> {
   int _guessCodeByWalletName(String name) {
     final lower = name.toLowerCase();
 
-    if (lower.contains('an') || lower.contains('uong') || lower.contains('food')) {
+    if (lower.contains('an') ||
+        lower.contains('uong') ||
+        lower.contains('food')) {
       return _codeByLabel('Ăn uống');
     }
     if (lower.contains('tro') || lower.contains('nha')) {
       return _codeByLabel('Nhà ở / Trọ');
     }
-    if (lower.contains('di') || lower.contains('xe') || lower.contains('xang')) {
+    if (lower.contains('di') ||
+        lower.contains('xe') ||
+        lower.contains('xang')) {
       return _codeByLabel('Đi lại');
     }
     if (lower.contains('mua') || lower.contains('shop')) {
@@ -52,7 +56,9 @@ class _EnvelopeDetailEditScreenState extends State<EnvelopeDetailEditScreen> {
     if (lower.contains('hoc') || lower.contains('sach')) {
       return _codeByLabel('Học tập');
     }
-    if (lower.contains('y te') || lower.contains('thuoc') || lower.contains('vien')) {
+    if (lower.contains('y te') ||
+        lower.contains('thuoc') ||
+        lower.contains('vien')) {
       return _codeByLabel('Y tế');
     }
 
@@ -140,19 +146,65 @@ class _EnvelopeDetailEditScreenState extends State<EnvelopeDetailEditScreen> {
     ).showSnackBar(const SnackBar(content: Text('Nạp tiền thành công.')));
   }
 
+  Future<void> deleteWallet() async {
+    final p = context.read<EnvelopeProvider>();
+    final w = p.selectedWallet;
+    if (w?.id == null) return;
+
+    final shouldDelete =
+        await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Xóa túi tiền?'),
+            content: const Text(
+              'Thao tác này sẽ xóa túi tiền và toàn bộ giao dịch trong túi. Không thể hoàn tác.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Hủy'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Xóa'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!shouldDelete) return;
+
+    await p.deleteEnvelope(w!.id!);
+    if (!mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(const SnackBar(content: Text('Đã xóa túi tiền.')));
+    Navigator.pop(context, true);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Chi tiết / Chỉnh sửa túi tiền')),
+      appBar: AppBar(
+        title: const Text(
+          'Chi tiết / Chỉnh sửa túi tiền',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+        ),
+      ),
       body: Consumer<EnvelopeProvider>(
-        builder: (_, p, __) {
+        builder: (context, p, child) {
           if (p.isLoading && p.selectedWallet == null) {
             return const Center(child: CircularProgressIndicator());
           }
 
           final w = p.selectedWallet;
-          if (w == null)
+          if (w == null) {
             return const Center(child: Text('Không có dữ liệu túi.'));
+          }
 
           // Khi đổi sang ví khác, cập nhật lại dữ liệu lên form.
           final currentWalletId = w.id ?? widget.walletId;
@@ -168,10 +220,21 @@ class _EnvelopeDetailEditScreenState extends State<EnvelopeDetailEditScreen> {
             _boundWalletId = currentWalletId;
           }
 
-          final spent = w.budget - w.balance;
+          var expenseTotal = 0.0;
+          var incomeTotal = 0.0;
+          for (final tx in p.selectedWalletTransactions) {
+            final amount = (tx['amount'] as num).toDouble();
+            final type = tx['transactionType'] as String;
+            if (type == 'EXPENSE') {
+              expenseTotal += amount;
+            } else {
+              incomeTotal += amount;
+            }
+          }
+
           final progress = w.budget <= 0
               ? 0.0
-              : (spent / w.budget).clamp(0.0, 1.0);
+              : (expenseTotal / w.budget).clamp(0.0, 1.0);
 
           return ListView(
             padding: const EdgeInsets.all(12),
@@ -184,7 +247,8 @@ class _EnvelopeDetailEditScreenState extends State<EnvelopeDetailEditScreen> {
                     children: [
                       Text('Túi: ${w.name}'),
                       Text('Ngân sách: ${money(w.budget)} VND'),
-                      Text('Đã tiêu: ${money(spent)} VND'),
+                      Text('Đã tiêu: ${money(expenseTotal)} VND'),
+                      Text('Đã thu: ${money(incomeTotal)} VND'),
                       Text('Còn lại: ${money(w.balance)} VND'),
                       const SizedBox(height: 8),
                       LinearProgressIndicator(value: progress),
@@ -208,7 +272,7 @@ class _EnvelopeDetailEditScreenState extends State<EnvelopeDetailEditScreen> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<int>(
-                value: iconCode,
+                initialValue: iconCode,
                 decoration: const InputDecoration(labelText: 'Icon'),
                 items: kWalletIconOptions
                     .map(
@@ -216,10 +280,7 @@ class _EnvelopeDetailEditScreenState extends State<EnvelopeDetailEditScreen> {
                         value: item.code,
                         child: Row(
                           children: [
-                            Icon(
-                              item.icon,
-                              color: item.color,
-                            ),
+                            Icon(item.icon, color: item.color),
                             const SizedBox(width: 8),
                             Text(item.label),
                           ],
@@ -233,6 +294,16 @@ class _EnvelopeDetailEditScreenState extends State<EnvelopeDetailEditScreen> {
               FilledButton(
                 onPressed: saveEdit,
                 child: const Text('Lưu chỉnh sửa'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: deleteWallet,
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                ),
+                label: const Text('Xóa túi tiền'),
               ),
 
               const SizedBox(height: 16),

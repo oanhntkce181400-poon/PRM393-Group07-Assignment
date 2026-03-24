@@ -372,12 +372,21 @@ class _DebtLoanManagementScreenState extends State<DebtLoanManagementScreen>
                   children: [
                     _ManageDebtList(
                       debts: provider.lendDebts,
+                      statusText: (isPaid) => isPaid
+                          ? 'Đã thu hồi khoản cho mượn'
+                          : 'Chưa thu hồi khoản cho mượn',
+                      onTogglePaid: (debt, isPaid) =>
+                          provider.markDebtPaid(debt.id!, isPaid),
                       onEdit: (debt) =>
                           _openDebtForm(existing: debt, debtType: 'LEND'),
                       onDelete: _deleteDebt,
                     ),
                     _ManageDebtList(
                       debts: provider.borrowDebts,
+                      statusText: (isPaid) =>
+                          isPaid ? 'Đã trả nợ khi vay' : 'Chưa trả nợ khi vay',
+                      onTogglePaid: (debt, isPaid) =>
+                          provider.markDebtPaid(debt.id!, isPaid),
                       onEdit: (debt) =>
                           _openDebtForm(existing: debt, debtType: 'BORROW'),
                       onDelete: _deleteDebt,
@@ -396,11 +405,15 @@ class _DebtLoanManagementScreenState extends State<DebtLoanManagementScreen>
 class _ManageDebtList extends StatelessWidget {
   const _ManageDebtList({
     required this.debts,
+    required this.statusText,
+    required this.onTogglePaid,
     required this.onEdit,
     required this.onDelete,
   });
 
   final List<Debt> debts;
+  final String Function(bool isPaid) statusText;
+  final Future<void> Function(Debt debt, bool isPaid) onTogglePaid;
   final ValueChanged<Debt> onEdit;
   final ValueChanged<Debt> onDelete;
 
@@ -481,6 +494,39 @@ class _ManageDebtList extends StatelessWidget {
                         fontSize: 14,
                         color: Color(0xFF475569),
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Transform.scale(
+                          scale: 1.05,
+                          child: Checkbox(
+                            value: isPaid,
+                            activeColor: const Color(0xFF0F766E),
+                            onChanged: debt.id == null
+                                ? null
+                                : (value) {
+                                    if (value == null) {
+                                      return;
+                                    }
+                                    onTogglePaid(debt, value);
+                                  },
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            statusText(isPaid),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: isPaid
+                                  ? const Color(0xFF166534)
+                                  : const Color(0xFF9A3412),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

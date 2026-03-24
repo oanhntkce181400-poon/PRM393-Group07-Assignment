@@ -1,4 +1,6 @@
+import 'package:expense_tracker/constants/wallet_icons.dart';
 import 'package:expense_tracker/models/transaction.dart';
+import 'package:expense_tracker/providers/notification_provider.dart';
 import 'package:expense_tracker/providers/transaction_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -84,6 +86,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
   // [NHAP_GIAO_DICH] Thu thập input và lưu giao dịch mới/chỉnh sửa.
   Future<void> _submit() async {
     final provider = context.read<TransactionProvider>();
+    final notificationProvider = context.read<NotificationProvider>();
 
     // [KIEM_TRA_DAU_VAO] Bắt buộc chọn ví.
     if (_walletId == null) {
@@ -136,6 +139,8 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
         await provider.addTransaction(tx);
       }
 
+      await notificationProvider.refreshData();
+
       if (mounted) {
         Navigator.pop(context, true);
       }
@@ -158,6 +163,8 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
     if (!_isEditMode) {
       return;
     }
+
+    final notificationProvider = context.read<NotificationProvider>();
 
     final transactionId = (widget.existingTransaction!['id'] as num).toInt();
     final shouldDelete =
@@ -185,6 +192,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
     }
 
     await context.read<TransactionProvider>().deleteTransaction(transactionId);
+    await notificationProvider.refreshData();
     if (!mounted) {
       return;
     }
@@ -230,6 +238,15 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
       return const [Color(0xFFDC2626), Color(0xFFF97316)];
     }
     return const [Color(0xFF059669), Color(0xFF22C55E)];
+  }
+
+  WalletIconOption? _walletIconByCode(int code) {
+    for (final option in kWalletIconOptions) {
+      if (option.code == code) {
+        return option;
+      }
+    }
+    return null;
   }
 
   @override
@@ -494,10 +511,14 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
                                   itemBuilder: (context, index) {
                                     final wallet = provider.wallets[index];
                                     final isSelected = _walletId == wallet.id;
-                                    final iconData = IconData(
+                                    final iconOption = _walletIconByCode(
                                       wallet.iconCode,
-                                      fontFamily: 'MaterialIcons',
                                     );
+                                    final iconData =
+                                        iconOption?.icon ?? Icons.wallet;
+                                    final iconColor =
+                                        iconOption?.color ??
+                                        const Color(0xFF475569);
 
                                     return InkWell(
                                       borderRadius: BorderRadius.circular(18),
@@ -536,7 +557,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
                                               iconData,
                                               color: isSelected
                                                   ? const Color(0xFF0F766E)
-                                                  : const Color(0xFF475569),
+                                                  : iconColor,
                                             ),
                                             const SizedBox(height: 7),
                                             Text(

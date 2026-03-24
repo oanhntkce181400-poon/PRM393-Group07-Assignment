@@ -34,7 +34,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
     _prefillFormIfNeeded();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // [DONG_BO_DANH_SACH_VI] Luôn lấy danh sách ví mới nhất khi mở màn hình.
-      context.read<TransactionProvider>().refreshWalletsOnly();
+      context.read<TransactionProvider>().expenseByWallet();
     });
   }
 

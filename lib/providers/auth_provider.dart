@@ -11,18 +11,16 @@ class AuthProvider extends ChangeNotifier {
   DateTime? _loginTime;
   Timer? _logoutTimer;
 
-  /// =========================
-  /// Getter
-  /// =========================
   bool get isLoggedIn {
     if (currentUser == null) return false;
 
-    // Kiểm tra timeout: 30 phút
+    // Timeout sau 30 phút
     if (_loginTime != null &&
-        DateTime.now().difference(_loginTime!).inMinutes >= 30) {
+        DateTime.now().difference(_loginTime!) >= const Duration(minutes: 30)) {
       logout();
       return false;
     }
+
     return true;
   }
 

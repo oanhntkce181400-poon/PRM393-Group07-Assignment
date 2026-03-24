@@ -1,13 +1,7 @@
 import 'dart:ui';
 
-import 'package:expense_tracker/providers/notification_provider.dart';
 import 'package:expense_tracker/providers/transaction_provider.dart';
 import 'package:expense_tracker/screens/add_edit_transaction_screen.dart';
-import 'package:expense_tracker/screens/debt_loan_management_screen.dart';
-import 'package:expense_tracker/screens/debt_loan_overview_screen.dart';
-import 'package:expense_tracker/screens/envelope_managemet_screen.dart';
-import 'package:expense_tracker/screens/goal_list_screen.dart';
-import 'package:expense_tracker/screens/notifications_screen.dart';
 import 'package:expense_tracker/screens/transaction_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -16,26 +10,6 @@ import 'package:provider/provider.dart';
 
 class TransactionListScreen extends StatelessWidget {
   const TransactionListScreen({super.key});
-
-  Future<void> _openFeatureScreen(BuildContext context, String value) async {
-    final notificationProvider = context.read<NotificationProvider>();
-
-    Widget screen;
-    if (value == 'debt_overview') {
-      screen = const DebtLoanOverviewScreen();
-    } else if (value == 'debt_manage') {
-      screen = const DebtLoanManagementScreen();
-    } else if (value == 'goal') {
-      screen = const GoalListScreen();
-    } else if (value == 'envelope_manage') {
-      screen = const EnvelopeManagementScreen();
-    } else {
-      screen = const NotificationsScreen();
-    }
-
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
-    await notificationProvider.refreshData();
-  }
 
   String _buildGreeting() {
     final hour = DateTime.now().hour;
@@ -126,71 +100,6 @@ class TransactionListScreen extends StatelessWidget {
                 surfaceTintColor: Colors.transparent,
                 elevation: 0,
                 actions: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Consumer<NotificationProvider>(
-                      builder: (context, notificationProvider, child) {
-                        final unread = notificationProvider.unreadCount;
-                        return IconButton(
-                          tooltip: 'Thông báo',
-                          onPressed: () =>
-                              _openFeatureScreen(context, 'notifications'),
-                          icon: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFF0F766E,
-                                  ).withValues(alpha: 0.14),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.notifications_none_rounded,
-                                  size: 18,
-                                  color: Color(0xFF0F766E),
-                                ),
-                              ),
-                              if (unread > 0)
-                                Positioned(
-                                  right: -6,
-                                  top: -5,
-                                  child: Container(
-                                    constraints: const BoxConstraints(
-                                      minWidth: 18,
-                                      minHeight: 18,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red,
-                                      borderRadius: BorderRadius.circular(999),
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 1.4,
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        unread > 99 ? '99+' : '$unread',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
                   Padding(
                     padding: const EdgeInsets.only(right: 14),
                     child: CircleAvatar(
@@ -322,14 +231,22 @@ class TransactionListScreen extends StatelessWidget {
                                                       ),
                                                 ),
                                                 const SizedBox(height: 8),
-                                                Text(
-                                                  NumberFormat.currency(
-                                                    locale: 'vi_VN',
-                                                    symbol: 'Tổng số dư: ',
-                                                  ).format(totalBalance),
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w700,
-                                                    color: Color(0xFF0F766E),
+                                                RichText(
+                                                  text: TextSpan(
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: Color(0xFF0F766E),
+                                                    ),
+                                                    children: [
+                                                      const TextSpan(
+                                                        text: 'Tổng số dư: ',
+                                                      ),
+                                                      TextSpan(
+                                                        text:
+                                                            '${NumberFormat.decimalPattern('vi_VN').format(totalBalance)} ₫',
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
                                               ],
@@ -375,10 +292,8 @@ class TransactionListScreen extends StatelessWidget {
                       Expanded(
                         child: _SummaryPill(
                           title: 'Thu nhập',
-                          value: NumberFormat.compactCurrency(
-                            locale: 'vi_VN',
-                            symbol: 'VND ',
-                          ).format(incomeTotal),
+                          value:
+                              '${NumberFormat.decimalPattern('vi_VN').format(incomeTotal)} VND',
                           color: Colors.green,
                         ),
                       ),
@@ -386,10 +301,8 @@ class TransactionListScreen extends StatelessWidget {
                       Expanded(
                         child: _SummaryPill(
                           title: 'Chi tiêu',
-                          value: NumberFormat.compactCurrency(
-                            locale: 'vi_VN',
-                            symbol: 'VND ',
-                          ).format(expenseTotal),
+                          value:
+                              '${NumberFormat.decimalPattern('vi_VN').format(expenseTotal)} VND',
                           color: Colors.red,
                         ),
                       ),
@@ -459,8 +372,10 @@ class TransactionListScreen extends StatelessWidget {
                               subtitle: 'Quản lý túi tiền',
                               icon: Icons.account_balance_wallet_rounded,
                               color: const Color(0xFF2563EB),
-                              onTap: () =>
-                                  _openFeatureScreen(context, 'envelope_manage'),
+                              onTap: () => _openFeatureScreen(
+                                context,
+                                'envelope_manage',
+                              ),
                             ),
                           ),
                         ],
@@ -500,8 +415,8 @@ class TransactionListScreen extends StatelessWidget {
                       final isExpense = transactionType == 'EXPENSE';
                       final color = isExpense ? Colors.red : Colors.green;
                       final icon = isExpense
-                          ? Icons.arrow_downward
-                          : Icons.arrow_upward;
+                          ? Icons.arrow_downward_rounded
+                          : Icons.arrow_upward_rounded;
                       final signedAmount = _formatSignedAmount(
                         amount,
                         isExpense: isExpense,
@@ -650,100 +565,51 @@ class _SummaryPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '$title: $value',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FeatureQuickAction extends StatelessWidget {
-  const _FeatureQuickAction({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Ink(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withValues(alpha: 0.22)),
-          ),
-          child: Row(
+          Row(
             children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: color.withValues(alpha: 0.16),
-                child: Icon(icon, color: color),
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF475569),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(left: 18),
+            child: Text(
+              value,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: color,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

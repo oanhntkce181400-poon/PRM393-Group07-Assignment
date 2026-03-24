@@ -1,7 +1,17 @@
 import 'dart:ui';
 
+import 'package:expense_tracker/providers/notification_provider.dart';
 import 'package:expense_tracker/providers/transaction_provider.dart';
 import 'package:expense_tracker/screens/add_edit_transaction_screen.dart';
+import 'package:expense_tracker/screens/debt_loan_management_screen.dart';
+import 'package:expense_tracker/screens/debt_loan_overview_screen.dart';
+import 'package:expense_tracker/screens/envelope_managemet_screen.dart';
+import 'package:expense_tracker/screens/goal_list_screen.dart';
+import 'package:expense_tracker/models/feature_action_item.dart';
+import 'package:expense_tracker/models/summary_item.dart';
+import 'package:expense_tracker/screens/notifications_screen.dart';
+import 'package:expense_tracker/screens/feature_quick_action.dart';
+import 'package:expense_tracker/screens/summary_pill.dart';
 import 'package:expense_tracker/screens/transaction_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +20,26 @@ import 'package:provider/provider.dart';
 
 class TransactionListScreen extends StatelessWidget {
   const TransactionListScreen({super.key});
+
+  Future<void> _openFeatureScreen(BuildContext context, String value) async {
+    final notificationProvider = context.read<NotificationProvider>();
+
+    Widget screen;
+    if (value == 'debt_overview') {
+      screen = const DebtLoanOverviewScreen();
+    } else if (value == 'debt_manage') {
+      screen = const DebtLoanManagementScreen();
+    } else if (value == 'goal') {
+      screen = const GoalListScreen();
+    } else if (value == 'envelope_manage') {
+      screen = const EnvelopeManagementScreen();
+    } else {
+      screen = const NotificationsScreen();
+    }
+
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+    await notificationProvider.refreshData();
+  }
 
   String _buildGreeting() {
     final hour = DateTime.now().hour;
@@ -87,6 +117,52 @@ class TransactionListScreen extends StatelessWidget {
               incomeTotal += amount;
             }
           }
+
+          final summaryItems = [
+            SummaryItem(
+              title: 'Thu nhập',
+              value:
+                  '${NumberFormat.decimalPattern('vi_VN').format(incomeTotal)} VND',
+              color: Colors.green,
+            ),
+            SummaryItem(
+              title: 'Chi tiêu',
+              value:
+                  '${NumberFormat.decimalPattern('vi_VN').format(expenseTotal)} VND',
+              color: Colors.red,
+            ),
+          ];
+
+          final featureActions = [
+            const FeatureActionItem(
+              title: 'Nợ & vay',
+              subtitle: 'Xem danh sách',
+              icon: Icons.account_balance_wallet_outlined,
+              color: Color(0xFF0EA5A4),
+              actionKey: 'debt_overview',
+            ),
+            const FeatureActionItem(
+              title: 'Quản lý nợ',
+              subtitle: 'Thêm / sửa / xóa',
+              icon: Icons.edit_note_rounded,
+              color: Color(0xFF22C55E),
+              actionKey: 'debt_manage',
+            ),
+            const FeatureActionItem(
+              title: 'Quỹ tiết kiệm',
+              subtitle: 'Xem mục tiêu',
+              icon: Icons.savings_outlined,
+              color: Color(0xFFF59E0B),
+              actionKey: 'goal',
+            ),
+            const FeatureActionItem(
+              title: 'Túi tiền',
+              subtitle: 'Quản lý túi tiền',
+              icon: Icons.account_balance_wallet_rounded,
+              color: Color(0xFF2563EB),
+              actionKey: 'envelope_manage',
+            ),
+          ];
 
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
@@ -289,23 +365,9 @@ class TransactionListScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: _SummaryPill(
-                          title: 'Thu nhập',
-                          value:
-                              '${NumberFormat.decimalPattern('vi_VN').format(incomeTotal)} VND',
-                          color: Colors.green,
-                        ),
-                      ),
+                      Expanded(child: SummaryPill(item: summaryItems[0])),
                       const SizedBox(width: 10),
-                      Expanded(
-                        child: _SummaryPill(
-                          title: 'Chi tiêu',
-                          value:
-                              '${NumberFormat.decimalPattern('vi_VN').format(expenseTotal)} VND',
-                          color: Colors.red,
-                        ),
-                      ),
+                      Expanded(child: SummaryPill(item: summaryItems[1])),
                     ],
                   ),
                 ),
@@ -330,24 +392,22 @@ class TransactionListScreen extends StatelessWidget {
                       Row(
                         children: [
                           Expanded(
-                            child: _FeatureQuickAction(
-                              title: 'Nợ & vay',
-                              subtitle: 'Xem danh sách',
-                              icon: Icons.account_balance_wallet_outlined,
-                              color: const Color(0xFF0EA5A4),
-                              onTap: () =>
-                                  _openFeatureScreen(context, 'debt_overview'),
+                            child: FeatureQuickAction(
+                              item: featureActions[0],
+                              onTap: () => _openFeatureScreen(
+                                context,
+                                featureActions[0].actionKey,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: _FeatureQuickAction(
-                              title: 'Quản lý nợ',
-                              subtitle: 'Thêm / sửa / xóa',
-                              icon: Icons.edit_note_rounded,
-                              color: const Color(0xFF22C55E),
-                              onTap: () =>
-                                  _openFeatureScreen(context, 'debt_manage'),
+                            child: FeatureQuickAction(
+                              item: featureActions[1],
+                              onTap: () => _openFeatureScreen(
+                                context,
+                                featureActions[1].actionKey,
+                              ),
                             ),
                           ),
                         ],
@@ -357,24 +417,21 @@ class TransactionListScreen extends StatelessWidget {
                       Row(
                         children: [
                           Expanded(
-                            child: _FeatureQuickAction(
-                              title: 'Quỹ tiết kiệm',
-                              subtitle: 'Xem mục tiêu',
-                              icon: Icons.savings_outlined,
-                              color: const Color(0xFFF59E0B),
-                              onTap: () => _openFeatureScreen(context, 'goal'),
+                            child: FeatureQuickAction(
+                              item: featureActions[2],
+                              onTap: () => _openFeatureScreen(
+                                context,
+                                featureActions[2].actionKey,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: _FeatureQuickAction(
-                              title: 'Túi tiền',
-                              subtitle: 'Quản lý túi tiền',
-                              icon: Icons.account_balance_wallet_rounded,
-                              color: const Color(0xFF2563EB),
+                            child: FeatureQuickAction(
+                              item: featureActions[3],
                               onTap: () => _openFeatureScreen(
                                 context,
-                                'envelope_manage',
+                                featureActions[3].actionKey,
                               ),
                             ),
                           ),
@@ -546,70 +603,6 @@ class TransactionListScreen extends StatelessWidget {
             ],
           );
         },
-      ),
-    );
-  }
-}
-
-class _SummaryPill extends StatelessWidget {
-  const _SummaryPill({
-    required this.title,
-    required this.value,
-    required this.color,
-  });
-
-  final String title;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.only(left: 18),
-            child: Text(
-              value,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-                color: color,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

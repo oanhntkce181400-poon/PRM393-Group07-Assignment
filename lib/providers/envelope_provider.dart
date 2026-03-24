@@ -85,4 +85,12 @@ class EnvelopeProvider extends ChangeNotifier {
     await loadWallets();
     await loadEnvelopeDetail(walletId);
   }
+
+  Future<void> deleteEnvelope(int walletId) async {
+    await _db.deleteWallet(walletId);
+    selectedWallet = null;
+    selectedWalletTransactions = [];
+    await loadWallets();
+    notifyListeners();
+  }
 }

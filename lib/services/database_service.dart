@@ -120,6 +120,7 @@ class DatabaseService {
       'ALTER TABLE system_notifications ADD COLUMN isRead INTEGER NOT NULL DEFAULT 0',
     );
   }
+
   Future<void> _createGoalsTable(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS goals(
@@ -309,11 +310,7 @@ class DatabaseService {
 
   Future<Goal?> getGoalById(int id) async {
     final db = await database;
-    final result = await db.query(
-      'goals',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    final result = await db.query('goals', where: 'id = ?', whereArgs: [id]);
 
     if (result.isEmpty) {
       return null;
@@ -343,11 +340,7 @@ class DatabaseService {
 
   Future<int> deleteGoal(int id) async {
     final db = await database;
-    return db.delete(
-      'goals',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return db.delete('goals', where: 'id = ?', whereArgs: [id]);
   }
 
   // Debt Methods
@@ -397,9 +390,23 @@ class DatabaseService {
   }
 
   Future<List<Map<String, dynamic>>> getNotifications() async {
+    await syncLowBalanceNotificationsForAllWallets();
     await ensureDailyReminderNotification();
     final db = await database;
     return db.query('system_notifications', orderBy: 'createdAt DESC, id DESC');
+  }
+
+  Future<void> syncLowBalanceNotificationsForAllWallets() async {
+    final db = await database;
+    final walletRows = await db.query('wallets', columns: ['id']);
+
+    for (final wallet in walletRows) {
+      final walletId = (wallet['id'] as num?)?.toInt();
+      if (walletId == null) {
+        continue;
+      }
+      await _createLowBalanceNotificationIfNeeded(db, walletId);
+    }
   }
 
   Future<int> getUnreadNotificationCount() async {
@@ -481,6 +488,9 @@ class DatabaseService {
     if (balance < 0) {
       alertType = 'LOW_BALANCE_NEGATIVE';
       message = 'Cảnh báo: $walletName đã âm tiền. Bạn cần cân đối lại ngay!';
+    } else if (balance == 0) {
+      alertType = 'LOW_BALANCE_EMPTY';
+      message = 'Cảnh báo: $walletName của bạn đã hết tiền!';
     } else if (balance <= budget * 0.2) {
       alertType = 'LOW_BALANCE_20';
       message = 'Cảnh báo: $walletName của bạn sắp cạn (dưới 20% ngân sách).';
@@ -525,12 +535,16 @@ class DatabaseService {
     }
 
     final db = await database;
-    return db.update(
-      'wallets',
-      wallet.toMap(),
-      where: 'id = ?',
-      whereArgs: [wallet.id],
-    );
+    return db.transaction((txn) async {
+      final updatedRows = await txn.update(
+        'wallets',
+        wallet.toMap(),
+        where: 'id = ?',
+        whereArgs: [wallet.id],
+      );
+      await _createLowBalanceNotificationIfNeeded(txn, wallet.id!);
+      return updatedRows;
+    });
   }
 
   Future<int> topUpWalletManual(int walletId, double amount) async {
@@ -540,11 +554,15 @@ class DatabaseService {
 
     final db = await database;
 
-    // Nạp tiền thủ công: tăng budget + balance để progress bar vẫn đúng
-    return db.rawUpdate(
-      'UPDATE wallets SET budget = budget + ?, balance = balance + ? WHERE id = ?',
-      [amount, amount, walletId],
-    );
+    return db.transaction((txn) async {
+      // Nạp tiền thủ công: tăng budget + balance để progress bar vẫn đúng
+      final updatedRows = await txn.rawUpdate(
+        'UPDATE wallets SET budget = budget + ?, balance = balance + ? WHERE id = ?',
+        [amount, amount, walletId],
+      );
+      await _createLowBalanceNotificationIfNeeded(txn, walletId);
+      return updatedRows;
+    });
   }
 
   Future<Wallet?> getWalletById(int walletId) async {
@@ -572,5 +590,22 @@ class DatabaseService {
       whereArgs: [walletId],
       orderBy: 'date DESC, id DESC',
     );
+  }
+
+  Future<int> deleteWallet(int walletId) async {
+    final db = await database;
+    return db.transaction((txn) async {
+      await txn.delete(
+        'system_notifications',
+        where: 'referenceId = ?',
+        whereArgs: [walletId],
+      );
+      await txn.delete(
+        'transactions',
+        where: 'walletId = ?',
+        whereArgs: [walletId],
+      );
+      return txn.delete('wallets', where: 'id = ?', whereArgs: [walletId]);
+    });
   }
 }

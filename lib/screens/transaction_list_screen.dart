@@ -1,6 +1,7 @@
 import 'package:expense_tracker/providers/transaction_provider.dart';
 import 'package:expense_tracker/screens/add_edit_transaction_screen.dart';
 import 'package:expense_tracker/screens/transaction_detail_screen.dart';
+import 'package:expense_tracker/screens/statistics_screen.dart'; // ⭐ NEW
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -21,6 +22,8 @@ class TransactionListScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
+
+      /// ================= BODY =================
       body: Consumer<TransactionProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading) {
@@ -55,14 +58,16 @@ class TransactionListScreen extends StatelessWidget {
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
             itemCount: provider.transactions.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 10),
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final tx = provider.transactions[index];
+
               final txId = (tx['id'] as num).toInt();
               final transactionType = tx['transactionType'] as String;
               final amount = (tx['amount'] as num).toDouble();
               final walletName = tx['walletName'] as String;
               final note = (tx['note'] as String?) ?? '';
+
               final parsedDate = DateTime.tryParse(tx['date'] as String);
               final formattedDate = parsedDate == null
                   ? '-'
@@ -70,9 +75,11 @@ class TransactionListScreen extends StatelessWidget {
 
               final isExpense = transactionType == 'EXPENSE';
               final color = isExpense ? Colors.red : Colors.green;
+
               final icon = isExpense
                   ? Icons.arrow_downward
                   : Icons.arrow_upward;
+
               final signedAmount = isExpense
                   ? '-${NumberFormat.currency(locale: 'vi_VN', symbol: 'VND ').format(amount)}'
                   : '+${NumberFormat.currency(locale: 'vi_VN', symbol: 'VND ').format(amount)}';
@@ -130,6 +137,7 @@ class TransactionListScreen extends StatelessWidget {
                     await context.read<TransactionProvider>().deleteTransaction(
                       txId,
                     );
+
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Transaction deleted.')),
@@ -185,14 +193,41 @@ class TransactionListScreen extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddEditTransactionScreen()),
-          );
-        },
-        child: const Icon(Icons.add_rounded),
+
+      /// ================= FLOATING BUTTONS =================
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          /// 📊 STATISTICS BUTTON (NEW)
+          FloatingActionButton(
+            heroTag: "stats_btn",
+            mini: true,
+            backgroundColor: Colors.deepPurple,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StatisticsScreen()),
+              );
+            },
+            child: const Icon(Icons.pie_chart),
+          ),
+
+          const SizedBox(height: 12),
+
+          /// ➕ ADD TRANSACTION (OLD BUTTON)
+          FloatingActionButton(
+            heroTag: "add_btn",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AddEditTransactionScreen(),
+                ),
+              );
+            },
+            child: const Icon(Icons.add_rounded),
+          ),
+        ],
       ),
     );
   }

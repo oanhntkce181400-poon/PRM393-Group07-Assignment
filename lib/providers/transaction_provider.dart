@@ -40,6 +40,21 @@ class TransactionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> refreshWalletsOnly() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _wallets = await _databaseService.getWallets();
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = 'Failed to load wallets: $e';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
   /// ================= CRUD TRANSACTION =================
 
   Future<void> addTransaction(Transaction transaction) async {

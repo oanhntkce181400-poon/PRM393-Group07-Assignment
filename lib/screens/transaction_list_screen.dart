@@ -2,12 +2,14 @@ import 'dart:ui';
 
 import 'package:expense_tracker/providers/notification_provider.dart';
 import 'package:expense_tracker/providers/transaction_provider.dart';
+import 'package:expense_tracker/providers/auth_provider.dart';
 import 'package:expense_tracker/screens/add_edit_transaction_screen.dart';
 import 'package:expense_tracker/screens/debt_loan_management_screen.dart';
 import 'package:expense_tracker/screens/envelope_managemet_screen.dart';
 import 'package:expense_tracker/screens/goal_list_screen.dart';
 import 'package:expense_tracker/screens/notifications_screen.dart';
 import 'package:expense_tracker/screens/transaction_detail_screen.dart';
+import 'package:expense_tracker/screens/statistics_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
@@ -36,19 +38,13 @@ class TransactionListScreen extends StatelessWidget {
 
   String _buildGreeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) {
-      return 'Chào buổi sáng, Oanh!';
-    }
-    if (hour < 18) {
-      return 'Chào buổi chiều, Oanh!';
-    }
+    if (hour < 12) return 'Chào buổi sáng, Oanh!';
+    if (hour < 18) return 'Chào buổi chiều, Oanh!';
     return 'Chào buổi tối, Oanh!';
   }
 
   String _buildMoodLine(double totalBalance) {
-    if (totalBalance < 500000) {
-      return 'Sắp hết tiền rồi nha!';
-    }
+    if (totalBalance < 500000) return 'Sắp hết tiền rồi nha!';
     return 'Giúp bạn kiểm soát từng đồng tiền.';
   }
 
@@ -61,15 +57,6 @@ class TransactionListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddEditTransactionScreen()),
-          );
-        },
-        child: const Icon(Icons.add_rounded),
-      ),
       body: Consumer<TransactionProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading) {
@@ -119,10 +106,11 @@ class TransactionListScreen extends StatelessWidget {
                 floating: true,
                 stretch: true,
                 expandedHeight: 230,
-                backgroundColor: Colors.white.withValues(alpha: 0.72),
+                backgroundColor: Colors.white.withAlpha(184),
                 surfaceTintColor: Colors.transparent,
                 elevation: 0,
                 actions: [
+                  // Nút Thông báo
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: Consumer<NotificationProvider>(
@@ -139,9 +127,7 @@ class TransactionListScreen extends StatelessWidget {
                                 width: 32,
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFF0F766E,
-                                  ).withValues(alpha: 0.14),
+                                  color: const Color(0xFF0F766E).withAlpha(36),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
@@ -188,17 +174,51 @@ class TransactionListScreen extends StatelessWidget {
                       },
                     ),
                   ),
+
                   Padding(
                     padding: const EdgeInsets.only(right: 14),
-                    child: CircleAvatar(
-                      radius: 16,
-                      backgroundColor: const Color(
-                        0xFF0F766E,
-                      ).withValues(alpha: 0.16),
-                      child: const Icon(
-                        Icons.person_rounded,
-                        size: 18,
-                        color: Color(0xFF0F766E),
+                    child: GestureDetector(
+                      onTap: () async {
+                        // Hiển thị dialog xác nhận logout
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Đăng xuất?'),
+                            content: const Text(
+                              'Bạn có chắc chắn muốn đăng xuất không?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Hủy'),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Đăng xuất'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed == true) {
+                          // Gọi hàm logout từ AuthProvider
+                          await context.read<AuthProvider>().logout();
+                          if (context.mounted) {
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                              '/login', // route đến LoginScreen
+                              (route) => false,
+                            );
+                          }
+                        }
+                      },
+                      child: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: const Color(0xFF0F766E).withAlpha(41),
+                        child: const Icon(
+                          Icons.person_rounded,
+                          size: 18,
+                          color: Color(0xFF0F766E),
+                        ),
                       ),
                     ),
                   ),
@@ -229,8 +249,8 @@ class TransactionListScreen extends StatelessWidget {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                Colors.white.withValues(alpha: 0.82),
-                                const Color(0xFFD1FAE5).withValues(alpha: 0.58),
+                                Colors.white.withAlpha(209),
+                                const Color(0xFFD1FAE5).withAlpha(148),
                               ],
                             ),
                           ),
@@ -246,7 +266,7 @@ class TransactionListScreen extends StatelessWidget {
                                   decoration: BoxDecoration(
                                     color: const Color(
                                       0xFF34D399,
-                                    ).withValues(alpha: 0.13),
+                                    ).withAlpha(33),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -260,7 +280,7 @@ class TransactionListScreen extends StatelessWidget {
                                   decoration: BoxDecoration(
                                     color: const Color(
                                       0xFF14B8A6,
-                                    ).withValues(alpha: 0.11),
+                                    ).withAlpha(28),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -276,14 +296,10 @@ class TransactionListScreen extends StatelessWidget {
                                     child: Container(
                                       padding: const EdgeInsets.all(14),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.5,
-                                        ),
+                                        color: Colors.white.withAlpha(127),
                                         borderRadius: BorderRadius.circular(16),
                                         border: Border.all(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.65,
-                                          ),
+                                          color: Colors.white.withAlpha(166),
                                         ),
                                       ),
                                       child: Row(
@@ -364,6 +380,8 @@ class TransactionListScreen extends StatelessWidget {
                   },
                 ),
               ),
+
+              // Phần Slivers: summary pill, feature actions, transaction list
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
@@ -409,7 +427,6 @@ class TransactionListScreen extends StatelessWidget {
                             ),
                       ),
                       const SizedBox(height: 10),
-
                       Row(
                         children: [
                           Expanded(
@@ -426,7 +443,6 @@ class TransactionListScreen extends StatelessWidget {
                           const Expanded(child: SizedBox()),
                         ],
                       ),
-
                       const SizedBox(height: 10),
                       Row(
                         children: [
@@ -575,9 +591,7 @@ class TransactionListScreen extends StatelessWidget {
                               leading: Hero(
                                 tag: 'tx_wallet_$txId',
                                 child: CircleAvatar(
-                                  backgroundColor: color.withValues(
-                                    alpha: 0.12,
-                                  ),
+                                  backgroundColor: color.withAlpha(31),
                                   child: Icon(icon, color: color),
                                 ),
                               ),
@@ -621,6 +635,36 @@ class TransactionListScreen extends StatelessWidget {
           );
         },
       ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: "stats_btn",
+            mini: true,
+            backgroundColor: Colors.deepPurple,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StatisticsScreen()),
+              );
+            },
+            child: const Icon(Icons.pie_chart),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            heroTag: "add_btn",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AddEditTransactionScreen(),
+                ),
+              );
+            },
+            child: const Icon(Icons.add_rounded),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -641,7 +685,7 @@ class _SummaryPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.72),
+        color: Colors.white.withAlpha(184),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white),
       ),
@@ -694,13 +738,13 @@ class _FeatureQuickAction extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withValues(alpha: 0.22)),
+            border: Border.all(color: color.withAlpha(56)),
           ),
           child: Row(
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor: color.withValues(alpha: 0.16),
+                backgroundColor: color.withAlpha(41),
                 child: Icon(icon, color: color),
               ),
               const SizedBox(width: 10),

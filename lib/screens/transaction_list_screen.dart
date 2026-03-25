@@ -438,7 +438,7 @@ class TransactionListScreen extends StatelessWidget {
                           Expanded(
                             child: _FeatureQuickAction(
                               title: 'Nợ & vay',
-                              subtitle: 'Xem / thêm / sửa / xóa',
+                              subtitle: 'Quản lý công nợ và khoản vay',
                               icon: Icons.account_balance_wallet_outlined,
                               color: const Color(0xFF0EA5A4),
                               onTap: () =>

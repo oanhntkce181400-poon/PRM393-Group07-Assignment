@@ -142,7 +142,7 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
       await notificationProvider.refreshData();
 
       if (mounted) {
-        Navigator.pop(context, true);
+        Navigator.pop(context, _isEditMode ? 'updated' : 'created');
       }
     } catch (e) {
       if (mounted) {
@@ -191,13 +191,23 @@ class _AddEditTransactionScreenState extends State<AddEditTransactionScreen> {
       return;
     }
 
-    await context.read<TransactionProvider>().deleteTransaction(transactionId);
-    await notificationProvider.refreshData();
-    if (!mounted) {
-      return;
+    try {
+      await context.read<TransactionProvider>().deleteTransaction(
+        transactionId,
+      );
+      await notificationProvider.refreshData();
+      if (!mounted) {
+        return;
+      }
+      Navigator.pop(context, 'deleted');
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Xóa giao dịch thất bại: $e')));
     }
-
-    Navigator.pop(context, true);
   }
 
   InputDecoration _softDecoration({

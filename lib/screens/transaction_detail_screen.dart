@@ -59,15 +59,26 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
       return;
     }
 
-    await context.read<TransactionProvider>().deleteTransaction(transactionId);
-    if (!mounted) {
-      return;
-    }
+    try {
+      await context.read<TransactionProvider>().deleteTransaction(
+        transactionId,
+      );
+      if (!mounted) {
+        return;
+      }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Đã xóa giao dịch.')));
-    Navigator.pop(context, true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Xóa giao dịch thành công.')),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Xóa giao dịch thất bại: $e')));
+    }
   }
 
   List<Color> _buildHeaderGradient(bool isExpense) {
@@ -97,7 +108,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
           return FloatingActionButton(
             onPressed: () async {
-              final changed = await Navigator.push<bool>(
+              final result = await Navigator.push<String>(
                 context,
                 MaterialPageRoute(
                   builder: (_) =>
@@ -105,7 +116,26 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                 ),
               );
 
-              if (changed == true && context.mounted) {
+              if (!context.mounted) {
+                return;
+              }
+
+              if (result == 'updated') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Cập nhật giao dịch thành công.'),
+                  ),
+                );
+              } else if (result == 'deleted') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Xóa giao dịch thành công.')),
+                );
+                Navigator.pop(context, true);
+                return;
+              }
+
+              if ((result == 'updated' || result == 'deleted') &&
+                  context.mounted) {
                 setState(() {
                   _detailFuture = _loadDetail();
                 });

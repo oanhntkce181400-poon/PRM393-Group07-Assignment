@@ -1,17 +1,23 @@
-import 'package:expense_tracker/providers/debt_loan_provider.dart';
-import 'package:expense_tracker/providers/goal_provider.dart';
-import 'package:expense_tracker/providers/notification_provider.dart';
-import 'package:expense_tracker/providers/transaction_provider.dart';
-import 'package:expense_tracker/screens/transaction_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:expense_tracker/providers/envelope_provider.dart';
+
+/// PROVIDERS
+import 'providers/auth_provider.dart';
+import 'providers/transaction_provider.dart';
+import 'providers/goal_provider.dart';
+import 'providers/debt_loan_provider.dart';
+import 'providers/notification_provider.dart';
+import 'providers/envelope_provider.dart';
+
+/// SCREENS / WIDGETS
+import 'widgets/auth_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  /// ✅ FIX SQFLITE DESKTOP
   if (!kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.windows ||
           defaultTargetPlatform == TargetPlatform.linux ||
@@ -30,27 +36,42 @@ class ExpenseTrackerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        /// ✅ AUTH
+        ChangeNotifierProvider(create: (_) => AuthProvider()..tryAutoLogin()),
+
+        /// ✅ TRANSACTION
         ChangeNotifierProvider(
           create: (_) => TransactionProvider()..loadInitialData(),
         ),
+
+        /// ✅ GOAL
         ChangeNotifierProvider(
           create: (_) => GoalProvider()..loadInitialData(),
         ),
+
+        /// ✅ DEBT / LOAN
         ChangeNotifierProvider(
           create: (_) => DebtLoanProvider()..loadInitialData(),
         ),
+
+        /// ✅ NOTIFICATION
         ChangeNotifierProvider(
           create: (_) => NotificationProvider()..loadInitialData(),
         ),
+
+        /// ✅ ENVELOPE
         ChangeNotifierProvider(create: (_) => EnvelopeProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Quản lý chi tiêu',
+
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F766E)),
           useMaterial3: true,
+
           scaffoldBackgroundColor: const Color(0xFFF7F9FA),
+
           appBarTheme: const AppBarTheme(
             backgroundColor: Colors.transparent,
             foregroundColor: Color(0xFF0F172A),
@@ -59,31 +80,13 @@ class ExpenseTrackerApp extends StatelessWidget {
               color: Color(0xFF0F172A),
               fontSize: 30,
               fontWeight: FontWeight.w800,
-              letterSpacing: 0.4,
-            ),
-          ),
-          pageTransitionsTheme: const PageTransitionsTheme(
-            builders: {
-              TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
-              TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-            },
-          ),
-          floatingActionButtonTheme: const FloatingActionButtonThemeData(
-            backgroundColor: Color(0xFF7DD3C7),
-            foregroundColor: Color(0xFF083344),
-            elevation: 8,
-          ),
-          inputDecorationTheme: InputDecorationTheme(
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.grey.shade300),
             ),
           ),
         ),
-        home: const TransactionListScreen(),
+
+        /// ✅ QUAN TRỌNG
+        /// vào login trước
+        home: const AuthGate(),
       ),
     );
   }

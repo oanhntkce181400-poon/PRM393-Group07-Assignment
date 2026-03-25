@@ -54,6 +54,10 @@ class TransactionListScreen extends StatelessWidget {
     return '$sign$number VND';
   }
 
+  String _formatAmount(double amount) {
+    return '${NumberFormat.decimalPattern('vi_VN').format(amount)} VND';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -335,11 +339,19 @@ class TransactionListScreen extends StatelessWidget {
                                                       ),
                                                 ),
                                                 const SizedBox(height: 8),
-                                                Text(
-                                                  NumberFormat.currency(
-                                                    locale: 'vi_VN',
-                                                    symbol: 'Tổng số dư: ',
-                                                  ).format(totalBalance),
+                                                Text.rich(
+                                                  TextSpan(
+                                                    children: [
+                                                      const TextSpan(
+                                                        text: 'Tổng số dư: ',
+                                                      ),
+                                                      TextSpan(
+                                                        text: _formatAmount(
+                                                          totalBalance,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
                                                   style: const TextStyle(
                                                     fontWeight: FontWeight.w700,
                                                     color: Color(0xFF0F766E),
@@ -390,10 +402,7 @@ class TransactionListScreen extends StatelessWidget {
                       Expanded(
                         child: _SummaryPill(
                           title: 'Thu nhập',
-                          value: NumberFormat.compactCurrency(
-                            locale: 'vi_VN',
-                            symbol: 'VND ',
-                          ).format(incomeTotal),
+                          value: _formatAmount(incomeTotal),
                           color: Colors.green,
                         ),
                       ),
@@ -401,10 +410,7 @@ class TransactionListScreen extends StatelessWidget {
                       Expanded(
                         child: _SummaryPill(
                           title: 'Chi tiêu',
-                          value: NumberFormat.compactCurrency(
-                            locale: 'vi_VN',
-                            symbol: 'VND ',
-                          ).format(expenseTotal),
+                          value: _formatAmount(expenseTotal),
                           color: Colors.red,
                         ),
                       ),
@@ -440,7 +446,22 @@ class TransactionListScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 10),
-                          const Expanded(child: SizedBox()),
+                          Expanded(
+                            child: _FeatureQuickAction(
+                              title: 'Phân tích',
+                              subtitle: 'Xem biểu đồ chi tiêu',
+                              icon: Icons.pie_chart_rounded,
+                              color: const Color(0xFF7C3AED),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const StatisticsScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 10),
@@ -505,8 +526,8 @@ class TransactionListScreen extends StatelessWidget {
                       final isExpense = transactionType == 'EXPENSE';
                       final color = isExpense ? Colors.red : Colors.green;
                       final icon = isExpense
-                          ? Icons.arrow_downward
-                          : Icons.arrow_upward;
+                          ? Icons.arrow_upward
+                          : Icons.arrow_downward;
                       final signedAmount = _formatSignedAmount(
                         amount,
                         isExpense: isExpense,
@@ -565,15 +586,25 @@ class TransactionListScreen extends StatelessWidget {
                                 false;
                           },
                           onDismissed: (_) async {
-                            await context
-                                .read<TransactionProvider>()
-                                .deleteTransaction(txId);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Đã xóa giao dịch.'),
-                                ),
-                              );
+                            try {
+                              await context
+                                  .read<TransactionProvider>()
+                                  .deleteTransaction(txId);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Xóa giao dịch thành công.'),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Xóa giao dịch thất bại: $e'),
+                                  ),
+                                );
+                              }
                             }
                           },
                           child: Card(
@@ -635,35 +666,23 @@ class TransactionListScreen extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton(
-            heroTag: "stats_btn",
-            mini: true,
-            backgroundColor: Colors.deepPurple,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const StatisticsScreen()),
-              );
-            },
-            child: const Icon(Icons.pie_chart),
-          ),
-          const SizedBox(height: 12),
-          FloatingActionButton(
-            heroTag: "add_btn",
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const AddEditTransactionScreen(),
-                ),
-              );
-            },
-            child: const Icon(Icons.add_rounded),
-          ),
-        ],
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'add_btn',
+        onPressed: () async {
+          final result = await Navigator.push<String>(
+            context,
+            MaterialPageRoute(builder: (_) => const AddEditTransactionScreen()),
+          );
+          if (!context.mounted) {
+            return;
+          }
+          if (result == 'created') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Thêm giao dịch thành công.')),
+            );
+          }
+        },
+        child: const Icon(Icons.add_rounded),
       ),
     );
   }
@@ -689,20 +708,35 @@ class _SummaryPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '$title: $value',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color.withValues(alpha: 0.9),
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],

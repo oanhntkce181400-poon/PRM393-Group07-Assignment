@@ -17,6 +17,7 @@ class AuthGate extends StatelessWidget {
     }
 
     if (auth.isLoggedIn) {
+      auth.touchSession();
       return const TransactionListScreen();
     }
 

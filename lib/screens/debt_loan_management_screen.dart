@@ -70,6 +70,8 @@ class _DebtLoanManagementScreenState extends State<DebtLoanManagementScreen>
     final amountController = TextEditingController(
       text: existing == null ? '' : _formatVndInput(existing.amount),
     );
+    final formKey = GlobalKey<FormState>();
+    var autovalidateMode = AutovalidateMode.disabled;
     DateTime selectedDate =
         DateTime.tryParse(existing?.dueDate ?? '') ?? DateTime.now();
 
@@ -81,88 +83,105 @@ class _DebtLoanManagementScreenState extends State<DebtLoanManagementScreen>
             return AlertDialog(
               title: Text(formTitle),
               content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
+                child: Form(
+                  key: formKey,
+                  autovalidateMode: autovalidateMode,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isLend
+                              ? const Color(0xFFDCFCE7)
+                              : const Color(0xFFFFEDD5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              typeLabel,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: isLend
+                                    ? const Color(0xFF166534)
+                                    : const Color(0xFF9A3412),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              typeHint,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isLend
+                                    ? const Color(0xFF166534)
+                                    : const Color(0xFF9A3412),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: isLend
-                            ? const Color(0xFFDCFCE7)
-                            : const Color(0xFFFFEDD5),
-                        borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: nameController,
+                        decoration: InputDecoration(labelText: partnerLabel),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Vui lòng nhập tên';
+                          }
+                          return null;
+                        },
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: amountController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: amountLabel,
+                          hintText: 'Ví dụ: 2.000.000',
+                        ),
+                        validator: (value) {
+                          final amount = _parseVndInput(value?.trim() ?? '');
+                          if (amount == null || amount <= 0) {
+                            return 'Vui lòng nhập số tiền hợp lệ';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
                         children: [
-                          Text(
-                            typeLabel,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: isLend
-                                  ? const Color(0xFF166534)
-                                  : const Color(0xFF9A3412),
+                          Expanded(
+                            child: Text(
+                              '${isLend ? 'Hẹn người đó trả' : 'Hẹn bạn trả'}: ${DateFormat('dd/MM/yyyy').format(selectedDate)}',
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            typeHint,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isLend
-                                  ? const Color(0xFF166534)
-                                  : const Color(0xFF9A3412),
-                            ),
+                          TextButton(
+                            onPressed: () async {
+                              final pickedDate = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2100),
+                              );
+
+                              if (pickedDate != null) {
+                                setStateDialog(() {
+                                  selectedDate = pickedDate;
+                                });
+                              }
+                            },
+                            child: const Text('Chọn ngày'),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(labelText: partnerLabel),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: amountController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: amountLabel,
-                        hintText: 'Ví dụ: 2.000.000',
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '${isLend ? 'Hẹn người đó trả' : 'Hẹn bạn trả'}: ${DateFormat('dd/MM/yyyy').format(selectedDate)}',
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            final pickedDate = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDate,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2100),
-                            );
-
-                            if (pickedDate != null) {
-                              setStateDialog(() {
-                                selectedDate = pickedDate;
-                              });
-                            }
-                          },
-                          child: const Text('Chọn ngày'),
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               actions: [
@@ -172,17 +191,25 @@ class _DebtLoanManagementScreenState extends State<DebtLoanManagementScreen>
                 ),
                 FilledButton(
                   onPressed: () async {
-                    final partnerName = nameController.text.trim();
-                    final amount = _parseVndInput(amountController.text.trim());
-
-                    if (partnerName.isEmpty || amount == null || amount <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Vui lòng nhập tên và số tiền hợp lệ.'),
-                        ),
-                      );
+                    final isValid = formKey.currentState?.validate() ?? false;
+                    if (!isValid) {
+                      setStateDialog(() {
+                        autovalidateMode = AutovalidateMode.onUserInteraction;
+                      });
                       return;
                     }
+
+                    final partnerName = nameController.text.trim();
+                    final parsedAmount = _parseVndInput(
+                      amountController.text.trim(),
+                    );
+                    if (parsedAmount == null || parsedAmount <= 0) {
+                      setStateDialog(() {
+                        autovalidateMode = AutovalidateMode.onUserInteraction;
+                      });
+                      return;
+                    }
+                    final amount = parsedAmount;
 
                     final provider = context.read<DebtLoanProvider>();
                     final debt = Debt(

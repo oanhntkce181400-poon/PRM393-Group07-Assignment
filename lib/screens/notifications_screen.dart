@@ -50,7 +50,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F8FA),
       appBar: AppBar(
-        title: const Text('Thông báo hệ thống'),
+        title: const Text(
+          'Thông báo hệ thống',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+        ),
         actions: const [
           Padding(
             padding: EdgeInsets.only(right: 14),

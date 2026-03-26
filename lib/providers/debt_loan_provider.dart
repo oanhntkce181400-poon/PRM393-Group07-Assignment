@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 class DebtLoanProvider extends ChangeNotifier {
   final DatabaseService _databaseService = DatabaseService.instance;
+  bool _isDisposed = false;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -22,7 +23,7 @@ class DebtLoanProvider extends ChangeNotifier {
   Future<void> refreshData() async {
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
+    _notifySafely();
 
     try {
       _lendDebts = await _databaseService.getDebtsByType('LEND');
@@ -31,7 +32,7 @@ class DebtLoanProvider extends ChangeNotifier {
       _errorMessage = 'Không thể tải danh sách nợ: $e';
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notifySafely();
     }
   }
 
@@ -53,5 +54,17 @@ class DebtLoanProvider extends ChangeNotifier {
   Future<void> markDebtPaid(int debtId, bool isPaid) async {
     await _databaseService.markDebtPaid(debtId, isPaid);
     await refreshData();
+  }
+
+  void _notifySafely() {
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 }

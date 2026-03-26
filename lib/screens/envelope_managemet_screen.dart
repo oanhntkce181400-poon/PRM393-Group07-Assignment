@@ -14,6 +14,16 @@ class EnvelopeManagementScreen extends StatefulWidget {
 }
 
 class _EnvelopeManagementScreenState extends State<EnvelopeManagementScreen> {
+  static const int _maxEnvelopeNameLength = 40;
+
+  double? _parseBudgetInput(String raw) {
+    final normalized = raw.replaceAll(RegExp(r'[^0-9.]'), '');
+    if (normalized.isEmpty) {
+      return null;
+    }
+    return double.tryParse(normalized);
+  }
+
   WalletIconOption _findOptionByLabel(String label) {
     return kWalletIconOptions.firstWhere((item) => item.label == label);
   }
@@ -32,28 +42,52 @@ class _EnvelopeManagementScreenState extends State<EnvelopeManagementScreen> {
     // 2) Nếu iconCode cũ bị lệch, fallback theo tên ví để ra đúng ngữ cảnh.
     final lower = walletName.toLowerCase();
 
-    if (lower.contains('ăn') || lower.contains('uong') || lower.contains('food')) {
+    if (lower.contains('ăn') ||
+        lower.contains('uong') ||
+        lower.contains('food')) {
       return _findOptionByLabel('Ăn uống');
     }
-    if (lower.contains('trọ') || lower.contains('tro') || lower.contains('nhà') || lower.contains('nha')) {
+    if (lower.contains('trọ') ||
+        lower.contains('tro') ||
+        lower.contains('nhà') ||
+        lower.contains('nha')) {
       return _findOptionByLabel('Nhà ở / Trọ');
     }
-    if (lower.contains('đi') || lower.contains('di lai') || lower.contains('xe') || lower.contains('xăng') || lower.contains('xang') || lower.contains('travel')) {
+    if (lower.contains('đi') ||
+        lower.contains('di lai') ||
+        lower.contains('xe') ||
+        lower.contains('xăng') ||
+        lower.contains('xang') ||
+        lower.contains('travel')) {
       return _findOptionByLabel('Đi lại');
     }
     if (lower.contains('mua') || lower.contains('shop')) {
       return _findOptionByLabel('Mua sắm');
     }
-    if (lower.contains('thể thao') || lower.contains('the thao') || lower.contains('bóng') || lower.contains('bong') || lower.contains('sport')) {
+    if (lower.contains('thể thao') ||
+        lower.contains('the thao') ||
+        lower.contains('bóng') ||
+        lower.contains('bong') ||
+        lower.contains('sport')) {
       return _findOptionByLabel('Thể thao');
     }
-    if (lower.contains('gym') || lower.contains('tập') || lower.contains('tap')) {
+    if (lower.contains('gym') ||
+        lower.contains('tập') ||
+        lower.contains('tap')) {
       return _findOptionByLabel('Gym');
     }
-    if (lower.contains('học') || lower.contains('hoc') || lower.contains('sách') || lower.contains('sach')) {
+    if (lower.contains('học') ||
+        lower.contains('hoc') ||
+        lower.contains('sách') ||
+        lower.contains('sach')) {
       return _findOptionByLabel('Học tập');
     }
-    if (lower.contains('y tế') || lower.contains('y te') || lower.contains('thuốc') || lower.contains('thuoc') || lower.contains('viện') || lower.contains('vien')) {
+    if (lower.contains('y tế') ||
+        lower.contains('y te') ||
+        lower.contains('thuốc') ||
+        lower.contains('thuoc') ||
+        lower.contains('viện') ||
+        lower.contains('vien')) {
       return _findOptionByLabel('Y tế');
     }
 
@@ -75,6 +109,8 @@ class _EnvelopeManagementScreenState extends State<EnvelopeManagementScreen> {
   Future<void> showCreateDialog() async {
     final nameCtrl = TextEditingController();
     final budgetCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    var autoValidateMode = AutovalidateMode.disabled;
     int pickedCode = kWalletIconOptions.first.code;
 
     final result = await showDialog<bool>(
@@ -84,49 +120,76 @@ class _EnvelopeManagementScreenState extends State<EnvelopeManagementScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               title: const Text('Tạo túi tiền'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameCtrl,
-                    decoration: const InputDecoration(labelText: 'Tên túi'),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: budgetCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Ngân sách'),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<int>(
-                    value: pickedCode,
-                    decoration: const InputDecoration(labelText: 'Icon'),
-                    items: kWalletIconOptions
-                        .map(
-                          (item) => DropdownMenuItem<int>(
-                            value: item.code,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  item.icon,
-                                  color: item.color,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(item.label),
-                              ],
+              content: Form(
+                key: formKey,
+                autovalidateMode: autoValidateMode,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: nameCtrl,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(labelText: 'Tên túi'),
+                      validator: (value) {
+                        final name = value?.trim() ?? '';
+                        if (name.isEmpty) {
+                          return 'Vui lòng nhập tên túi.';
+                        }
+                        if (name.length > _maxEnvelopeNameLength) {
+                          return 'Tên túi tối đa $_maxEnvelopeNameLength ký tự.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: budgetCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(labelText: 'Ngân sách'),
+                      validator: (value) {
+                        final budget = _parseBudgetInput(value?.trim() ?? '');
+                        if (budget == null) {
+                          return 'Vui lòng nhập ngân sách.';
+                        }
+                        if (budget <= 0) {
+                          return 'Ngân sách phải lớn hơn 0.';
+                        }
+                        if (budget > 1000000000) {
+                          return 'Ngân sách quá lớn (tối đa 1,000,000,000).';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<int>(
+                      initialValue: pickedCode,
+                      decoration: const InputDecoration(labelText: 'Icon'),
+                      items: kWalletIconOptions
+                          .map(
+                            (item) => DropdownMenuItem<int>(
+                              value: item.code,
+                              child: Row(
+                                children: [
+                                  Icon(item.icon, color: item.color),
+                                  const SizedBox(width: 8),
+                                  Text(item.label),
+                                ],
+                              ),
                             ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setDialogState(() {
-                          pickedCode = v;
-                        });
-                      }
-                    },
-                  ),
-                ],
+                          )
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) {
+                          setDialogState(() {
+                            pickedCode = v;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -134,7 +197,16 @@ class _EnvelopeManagementScreenState extends State<EnvelopeManagementScreen> {
                   child: const Text('Hủy'),
                 ),
                 FilledButton(
-                  onPressed: () => Navigator.pop(ctx, true),
+                  onPressed: () {
+                    final isValid = formKey.currentState?.validate() ?? false;
+                    if (!isValid) {
+                      setDialogState(() {
+                        autoValidateMode = AutovalidateMode.onUserInteraction;
+                      });
+                      return;
+                    }
+                    Navigator.pop(ctx, true);
+                  },
                   child: const Text('Tạo'),
                 ),
               ],
@@ -144,31 +216,44 @@ class _EnvelopeManagementScreenState extends State<EnvelopeManagementScreen> {
       },
     );
 
-    // [XAC_NHAN_DIALOG] Chỉ xử lý khi người dùng bấm nút Tạo.
-    if (result != true || !mounted) return;
+    try {
+      if (result != true || !mounted) {
+        return;
+      }
 
-    final name = nameCtrl.text.trim();
-    final budget = double.tryParse(budgetCtrl.text.trim());
+      final name = nameCtrl.text.trim();
+      final budget = _parseBudgetInput(budgetCtrl.text.trim());
+      if (budget == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ngân sách không hợp lệ.')),
+        );
+        return;
+      }
 
-    // [KIEM_TRA_DU_LIEU] Chặn dữ liệu rỗng hoặc ngân sách không hợp lệ.
-    if (name.isEmpty || budget == null || budget <= 0) {
+      // [LUU_DB] Gọi provider để thêm ví mới vào database.
+      await context.read<EnvelopeProvider>().addEnvelope(
+        name,
+        pickedCode,
+        budget,
+      );
+
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Nhập sai dữ liệu.')));
-      return;
+      ).showSnackBar(const SnackBar(content: Text('Đã tạo túi tiền.')));
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      nameCtrl.dispose();
+      budgetCtrl.dispose();
     }
-
-    // [LUU_DB] Gọi provider để thêm ví mới vào database.
-    await context.read<EnvelopeProvider>().addEnvelope(
-      name,
-      pickedCode,
-      budget,
-    );
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Đã tạo túi tiền.')));
   }
 
   @override
@@ -180,17 +265,20 @@ class _EnvelopeManagementScreenState extends State<EnvelopeManagementScreen> {
         child: const Icon(Icons.add),
       ),
       body: Consumer<EnvelopeProvider>(
-        builder: (_, p, __) {
-          if (p.isLoading)
+        builder: (buildContext, p, child) {
+          if (p.isLoading) {
             return const Center(child: CircularProgressIndicator());
-          if (p.errorMessage != null)
+          }
+          if (p.errorMessage != null) {
             return Center(child: Text(p.errorMessage!));
-          if (p.wallets.isEmpty)
+          }
+          if (p.wallets.isEmpty) {
             return const Center(child: Text('Chưa có túi tiền.'));
+          }
 
           return ListView.builder(
             itemCount: p.wallets.length,
-            itemBuilder: (_, i) {
+            itemBuilder: (itemContext, i) {
               final w = p.wallets[i];
               final visual = _walletVisual(
                 walletName: w.name,
@@ -224,7 +312,7 @@ class _EnvelopeManagementScreenState extends State<EnvelopeManagementScreen> {
                   ),
                   onTap: () async {
                     if (w.id == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      ScaffoldMessenger.of(buildContext).showSnackBar(
                         const SnackBar(
                           content: Text('Ví không hợp lệ (thiếu id).'),
                         ),
@@ -233,14 +321,16 @@ class _EnvelopeManagementScreenState extends State<EnvelopeManagementScreen> {
                     }
 
                     await Navigator.push(
-                      context,
+                      buildContext,
                       MaterialPageRoute(
-                        builder: (_) =>
+                        builder: (routeContext) =>
                             EnvelopeDetailEditScreen(walletId: w.id!),
                       ),
                     );
-                    if (!mounted) return;
-                    await context.read<EnvelopeProvider>().loadWallets();
+                    if (!buildContext.mounted) {
+                      return;
+                    }
+                    await buildContext.read<EnvelopeProvider>().loadWallets();
                   },
                 ),
               );

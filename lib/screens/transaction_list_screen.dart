@@ -44,6 +44,8 @@ class TransactionListScreen extends StatelessWidget {
   }
 
   String _buildMoodLine(double totalBalance) {
+    if (totalBalance < 0) return 'Âm tiền rồi, cần cân đối lại ngay!';
+    if (totalBalance == 0) return 'Bạn đã dùng hết ngân sách hiện có.';
     if (totalBalance < 500000) return 'Sắp hết tiền rồi nha!';
     return 'Giúp bạn kiểm soát từng đồng tiền.';
   }

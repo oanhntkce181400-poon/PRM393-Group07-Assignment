@@ -12,6 +12,10 @@ class EnvelopeProvider extends ChangeNotifier {
   Wallet? selectedWallet;
   List<Map<String, dynamic>> selectedWalletTransactions = [];
 
+  String _normalizeName(String value) {
+    return value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+  }
+
   Future<void> loadWallets() async {
     isLoading = true;
     errorMessage = null;
@@ -28,8 +32,29 @@ class EnvelopeProvider extends ChangeNotifier {
   }
 
   Future<void> addEnvelope(String name, int iconCode, double budget) async {
+    final normalizedName = _normalizeName(name);
+    if (normalizedName.isEmpty) {
+      throw ArgumentError('Vui lòng nhập tên túi tiền.');
+    }
+    if (normalizedName.length > 40) {
+      throw ArgumentError('Tên túi tiền tối đa 40 ký tự.');
+    }
+    if (!budget.isFinite || budget <= 0) {
+      throw ArgumentError('Ngân sách phải lớn hơn 0.');
+    }
+    if (budget > 1000000000) {
+      throw ArgumentError('Ngân sách quá lớn (tối đa 1,000,000,000).');
+    }
+
+    final duplicated = wallets.any(
+      (wallet) => _normalizeName(wallet.name) == normalizedName,
+    );
+    if (duplicated) {
+      throw StateError('Tên túi tiền đã tồn tại. Vui lòng chọn tên khác.');
+    }
+
     final wallet = Wallet(
-      name: name,
+      name: name.trim().replaceAll(RegExp(r'\s+'), ' '),
       iconCode: iconCode,
       budget: budget,
       balance: budget,

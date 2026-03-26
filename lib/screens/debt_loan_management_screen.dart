@@ -16,18 +16,6 @@ class _DebtLoanManagementScreenState extends State<DebtLoanManagementScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
-  String _formatVndInput(num value) {
-    return NumberFormat.decimalPattern('vi_VN').format(value.round());
-  }
-
-  double? _parseVndInput(String raw) {
-    final digitsOnly = raw.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digitsOnly.isEmpty) {
-      return null;
-    }
-    return double.tryParse(digitsOnly);
-  }
-
   String _tabTitle() {
     return _tabController.index == 0 ? 'khoản cho mượn' : 'khoản đi vay';
   }
@@ -49,211 +37,37 @@ class _DebtLoanManagementScreenState extends State<DebtLoanManagementScreen>
   }
 
   Future<void> _openDebtForm({Debt? existing, required String debtType}) async {
-    final isLend = debtType == 'LEND';
-    final formTitle = existing == null
-        ? (isLend ? 'Thêm tiền cho mượn' : 'Thêm tiền đi vay')
-        : (isLend ? 'Sửa khoản cho mượn' : 'Sửa khoản đi vay');
-    final typeLabel = isLend ? 'Loại: Tiền cho mượn' : 'Loại: Tiền đi vay';
-    final typeHint = isLend
-        ? 'Bạn đang nhập khoản người khác nợ bạn.'
-        : 'Bạn đang nhập khoản bạn nợ người khác.';
-    final partnerLabel = isLend
-        ? 'Tên người mượn tiền'
-        : 'Tên người cho bạn vay';
-    final amountLabel = isLend
-        ? 'Số tiền cho mượn (VND)'
-        : 'Số tiền đi vay (VND)';
-
-    final nameController = TextEditingController(
-      text: existing?.partnerName ?? '',
-    );
-    final amountController = TextEditingController(
-      text: existing == null ? '' : _formatVndInput(existing.amount),
-    );
-    final formKey = GlobalKey<FormState>();
-    var autovalidateMode = AutovalidateMode.disabled;
-    DateTime selectedDate =
-        DateTime.tryParse(existing?.dueDate ?? '') ?? DateTime.now();
-
-    final result = await showDialog<bool>(
+    final provider = context.read<DebtLoanProvider>();
+    final submittedDebt = await showDialog<Debt>(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: Text(formTitle),
-              content: SingleChildScrollView(
-                child: Form(
-                  key: formKey,
-                  autovalidateMode: autovalidateMode,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isLend
-                              ? const Color(0xFFDCFCE7)
-                              : const Color(0xFFFFEDD5),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              typeLabel,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: isLend
-                                    ? const Color(0xFF166534)
-                                    : const Color(0xFF9A3412),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              typeHint,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isLend
-                                    ? const Color(0xFF166534)
-                                    : const Color(0xFF9A3412),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: nameController,
-                        decoration: InputDecoration(labelText: partnerLabel),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Vui lòng nhập tên';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: amountController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: amountLabel,
-                          hintText: 'Ví dụ: 2.000.000',
-                        ),
-                        validator: (value) {
-                          final amount = _parseVndInput(value?.trim() ?? '');
-                          if (amount == null || amount <= 0) {
-                            return 'Vui lòng nhập số tiền hợp lệ';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${isLend ? 'Hẹn người đó trả' : 'Hẹn bạn trả'}: ${DateFormat('dd/MM/yyyy').format(selectedDate)}',
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              final pickedDate = await showDatePicker(
-                                context: context,
-                                initialDate: selectedDate,
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime(2100),
-                              );
-
-                              if (pickedDate != null) {
-                                setStateDialog(() {
-                                  selectedDate = pickedDate;
-                                });
-                              }
-                            },
-                            child: const Text('Chọn ngày'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
-                  child: const Text('Hủy'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    final isValid = formKey.currentState?.validate() ?? false;
-                    if (!isValid) {
-                      setStateDialog(() {
-                        autovalidateMode = AutovalidateMode.onUserInteraction;
-                      });
-                      return;
-                    }
-
-                    final partnerName = nameController.text.trim();
-                    final parsedAmount = _parseVndInput(
-                      amountController.text.trim(),
-                    );
-                    if (parsedAmount == null || parsedAmount <= 0) {
-                      setStateDialog(() {
-                        autovalidateMode = AutovalidateMode.onUserInteraction;
-                      });
-                      return;
-                    }
-                    final amount = parsedAmount;
-
-                    final provider = context.read<DebtLoanProvider>();
-                    final debt = Debt(
-                      id: existing?.id,
-                      partnerName: partnerName,
-                      debtType: debtType,
-                      amount: amount,
-                      dueDate: DateTime(
-                        selectedDate.year,
-                        selectedDate.month,
-                        selectedDate.day,
-                      ).toIso8601String(),
-                      status: existing?.status ?? 0,
-                    );
-
-                    if (existing == null) {
-                      await provider.addDebt(debt);
-                    } else {
-                      await provider.updateDebt(debt);
-                    }
-
-                    if (context.mounted) {
-                      Navigator.pop(dialogContext, true);
-                    }
-                  },
-                  child: Text(
-                    isLend ? 'Lưu khoản cho mượn' : 'Lưu khoản đi vay',
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (dialogContext) =>
+          _DebtFormDialog(existing: existing, debtType: debtType),
     );
 
-    if (result == true && mounted) {
+    try {
+      if (submittedDebt != null) {
+        if (existing == null) {
+          await provider.addDebt(submittedDebt);
+        } else {
+          await provider.updateDebt(submittedDebt);
+        }
+
+        if (!mounted) {
+          return;
+        }
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Đã lưu khoản nợ.')));
+      }
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Đã lưu khoản nợ.')));
+      ).showSnackBar(SnackBar(content: Text('Lưu khoản nợ thất bại: $e')));
     }
-
-    nameController.dispose();
-    amountController.dispose();
   }
 
   Future<void> _deleteDebt(Debt debt) async {
@@ -425,6 +239,230 @@ class _DebtLoanManagementScreenState extends State<DebtLoanManagementScreen>
           );
         },
       ),
+    );
+  }
+}
+
+class _DebtFormDialog extends StatefulWidget {
+  const _DebtFormDialog({required this.debtType, this.existing});
+
+  final String debtType;
+  final Debt? existing;
+
+  @override
+  State<_DebtFormDialog> createState() => _DebtFormDialogState();
+}
+
+class _DebtFormDialogState extends State<_DebtFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late final TextEditingController _amountController;
+  AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
+  late DateTime _selectedDate;
+
+  bool get _isLend => widget.debtType == 'LEND';
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(
+      text: widget.existing?.partnerName ?? '',
+    );
+    _amountController = TextEditingController(
+      text: widget.existing == null
+          ? ''
+          : NumberFormat.decimalPattern(
+              'vi_VN',
+            ).format(widget.existing!.amount.round()),
+    );
+    _selectedDate =
+        DateTime.tryParse(widget.existing?.dueDate ?? '') ?? DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  double? _parseAmount(String raw) {
+    final digitsOnly = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digitsOnly.isEmpty) {
+      return null;
+    }
+    return double.tryParse(digitsOnly);
+  }
+
+  Future<void> _pickDate() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+
+    if (!mounted || pickedDate == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedDate = pickedDate;
+    });
+  }
+
+  void _submit() {
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) {
+      setState(() {
+        _autovalidateMode = AutovalidateMode.onUserInteraction;
+      });
+      return;
+    }
+
+    final amount = _parseAmount(_amountController.text.trim());
+    if (amount == null || amount <= 0) {
+      setState(() {
+        _autovalidateMode = AutovalidateMode.onUserInteraction;
+      });
+      return;
+    }
+
+    final debt = Debt(
+      id: widget.existing?.id,
+      partnerName: _nameController.text.trim(),
+      debtType: widget.debtType,
+      amount: amount,
+      dueDate: DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      ).toIso8601String(),
+      status: widget.existing?.status ?? 0,
+    );
+
+    if (mounted) {
+      Navigator.pop(context, debt);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final formTitle = widget.existing == null
+        ? (_isLend ? 'Thêm tiền cho mượn' : 'Thêm tiền đi vay')
+        : (_isLend ? 'Sửa khoản cho mượn' : 'Sửa khoản đi vay');
+    final typeLabel = _isLend ? 'Loại: Tiền cho mượn' : 'Loại: Tiền đi vay';
+    final typeHint = _isLend
+        ? 'Bạn đang nhập khoản người khác nợ bạn.'
+        : 'Bạn đang nhập khoản bạn nợ người khác.';
+    final partnerLabel = _isLend
+        ? 'Tên người mượn tiền'
+        : 'Tên người cho bạn vay';
+    final amountLabel = _isLend
+        ? 'Số tiền cho mượn (VND)'
+        : 'Số tiền đi vay (VND)';
+
+    return AlertDialog(
+      title: Text(formTitle),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          autovalidateMode: _autovalidateMode,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: _isLend
+                      ? const Color(0xFFDCFCE7)
+                      : const Color(0xFFFFEDD5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      typeLabel,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: _isLend
+                            ? const Color(0xFF166534)
+                            : const Color(0xFF9A3412),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      typeHint,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _isLend
+                            ? const Color(0xFF166534)
+                            : const Color(0xFF9A3412),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: partnerLabel),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Vui lòng nhập tên';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _amountController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: amountLabel,
+                  hintText: 'Ví dụ: 2.000.000',
+                ),
+                validator: (value) {
+                  final amount = _parseAmount(value?.trim() ?? '');
+                  if (amount == null || amount <= 0) {
+                    return 'Vui lòng nhập số tiền hợp lệ';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${_isLend ? 'Hẹn người đó trả' : 'Hẹn bạn trả'}: ${DateFormat('dd/MM/yyyy').format(_selectedDate)}',
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _pickDate,
+                    child: const Text('Chọn ngày'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Hủy'),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: Text(_isLend ? 'Lưu khoản cho mượn' : 'Lưu khoản đi vay'),
+        ),
+      ],
     );
   }
 }

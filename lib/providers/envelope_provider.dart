@@ -3,7 +3,10 @@ import 'package:expense_tracker/services/database_service.dart';
 import 'package:flutter/foundation.dart';
 
 class EnvelopeProvider extends ChangeNotifier {
-  final DatabaseService _db = DatabaseService.instance;
+  EnvelopeProvider({DatabaseService? databaseService})
+    : _db = databaseService ?? DatabaseService.instance;
+
+  final DatabaseService _db;
 
   bool isLoading = false;
   String? errorMessage;

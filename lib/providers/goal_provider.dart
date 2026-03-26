@@ -3,7 +3,10 @@ import 'package:expense_tracker/services/database_service.dart';
 import 'package:flutter/foundation.dart';
 
 class GoalProvider extends ChangeNotifier {
-  final DatabaseService _databaseService = DatabaseService.instance;
+  GoalProvider({DatabaseService? databaseService})
+    : _databaseService = databaseService ?? DatabaseService.instance;
+
+  final DatabaseService _databaseService;
 
   bool _isLoading = false;
   String? _errorMessage;

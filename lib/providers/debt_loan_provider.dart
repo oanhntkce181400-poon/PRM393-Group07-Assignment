@@ -3,7 +3,10 @@ import 'package:expense_tracker/services/database_service.dart';
 import 'package:flutter/foundation.dart';
 
 class DebtLoanProvider extends ChangeNotifier {
-  final DatabaseService _databaseService = DatabaseService.instance;
+  DebtLoanProvider({DatabaseService? databaseService})
+    : _databaseService = databaseService ?? DatabaseService.instance;
+
+  final DatabaseService _databaseService;
   bool _isDisposed = false;
 
   bool _isLoading = false;
